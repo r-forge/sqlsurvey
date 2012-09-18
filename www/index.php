@@ -33,7 +33,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- get project title  -->
 <!-- own website starts here, the following may be changed as you like -->
 
-<?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
+  <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
 	$contents .= fread($handle, 8192);
@@ -45,7 +45,35 @@ echo $contents; } ?>
 
   <p> This project has two packages: sqlsurvey, for analysis of large surveys, and RMonetDB, used by sqlsurvey to communicate with the MonetDB database </p>
 
-   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a>. Under Windows it is important to use a 64-bit version. 
+   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a>. Under Windows it is important to use a 64-bit version of MonetDB to allow creation of large databases. </p>
+
+ Useful notes:
+<ul>
+   <li> While it is possible to read data into R and then save into MonetDB using <tt>dbWriteTable</tt>, this is very inefficient for large files and it is better to construct the database table and read the data directly using the MonetDB console client. <a href="reading_acs3yr.txt">Here</a> is a script that reads the whole-US <a href="http://factfinder2.census.gov/faces/nav/jsf/pages/searchresults.xhtml?refresh=t">ACS 3yr person data</a>, which comes in four <tt>CSV</tt> files into a table in MonetDB.
+<li> <a href="acsanalyses.R">Examples</a> of setting up and using an ACS 3-yr person file.
+<li> Here is a <a href="verify.Rout">R output</a> that reproduces some of the <a href="http://www.census.gov/acs/www/Downloads/data_documentation/pums/Estimates/pums_estimates10.lst">Census Bureau totals for the 2008-2010 ACS</a>
+</ul>
+
+
+   Supported analyses:
+   <ul>
+<li> For surveys using linearisation or replicate weights
+<ul>
+   <li> Means and totals with standard errors, by grouping variables
+<li> Quantiles
+<li> Thinned or hexagonally binned scatterplots
+<li> Smoothers and density estimators
+   <li> Linear regression models (with standard errors)
+<li> Contingency tables
+<li> Subpopulation estimates
+</ul>
+<li> Only with replicate weights
+<ul>
+<li> Quantiles with standard errors and confidence intervals
+<li> Loglinear models, with Rao-Scott tests, including tests for independence in 2x2 tables
+</ul>
+</ul>
+
 
 <p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 

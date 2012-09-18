@@ -1,0 +1,42 @@
+drop table acs3yr;
+
+create table acsa ( serialno varchar(15), rt varchar(2), sporder int, puma int, st int, adjinc double, pwgtp int, agep int, cit int, citwp int, cow int, ddrs int,
+ dear int, deye int, dout int, dphy int, drat int, dratx int, drem int, eng int, fer int, gcl int, gcm int, gcr int, hins1 int, hins2 int, hins3 int, hins4 int, hins5 int,
+ hins6 int, hins7 int, intp int, jwmnp int, jwrip int, jwtr int, lanx int, mar int, marhd int, marhm int, marht int, marhw int, marhyp int, mig int, mil int, mlpa int, mlpb int,
+ mlpc int, mlpd int, mlpe int, mlpf int, mlpg int, mlph int, mlpi int, mlpj int, mlpk int, nwab int, nwav int, nwla int, nwlk int, nwre int, oip int, pap int, relp int, retp int,
+ sch int, schg int, schl int, semp int, sex int, ssip int, ssp int, wagp int, wkhp int, wkl int, wkw int, yoep int, anc int, anc1p int, anc2p int, decade int, dis int, drivesp int,
+ esp int, esr int, hicov int, hisp int, indp int, jwap int, jwdp int, lanp int, migpuma int, migsp int, msp int, naicsp varchar(15), nativity int, nop int, oc int, occp02 varchar(15),
+ occp10 varchar(15), paoc int, pernp int, pincp int, pobp int, povpip int, powpuma int, powsp int, privcov int, pubcov int, qtrbir int, rac1p int, rac2p int, rac3p int, racaian int,
+ racasn int, racblk int, racnhpi int, racnum int, racsor int, racwht int, rc int, sfn int, sfr int, socp00 varchar(15), socp10 varchar(15), vps int, waob int, fagep int, fancp int,
+ fcitp int, fcitwp int, fcowp int, fddrsp int, fdearp int, fdeyep int, fdoutp int, fdphyp int, fdratp int, fdratxp int, fdremp int, fengp int, fesrp int, fferp int, fgclp int, 
+fgcmp int, fgcrp int, fhins1p int, fhins2p int, fhins3c int, fhins3p int, fhins4c int, fhins4p int, fhins5c int, fhins5p int, fhins6p int, fhins7p int, fhisp int, findp int,
+ fintp int, fjwdp int, fjwmnp int, fjwrip int, fjwtrp int, flanp int, flanxp int, fmarhdp int, fmarhmp int, fmarhtp int, fmarhwp int, fmarhyp int, fmarp int, fmigp int, fmigsp int,
+ fmilpp int, fmilsp int, foccp int, foip int, fpap int, fpobp int, fpowsp int, fracp int, frelp int, fretp int, fschgp int, fschlp int, fschp int, fsemp int, fsexp int, fssip int,
+ fssp int, fwagp int, fwkhp int, fwklp int, fwkwp int, fyoep int, pwgtp1 int, pwgtp2 int, pwgtp3 int, pwgtp4 int, pwgtp5 int, pwgtp6 int, pwgtp7 int, pwgtp8 int, pwgtp9 int, 
+pwgtp10 int, pwgtp11 int, pwgtp12 int, pwgtp13 int, pwgtp14 int, pwgtp15 int, pwgtp16 int, pwgtp17 int, pwgtp18 int, pwgtp19 int, pwgtp20 int, pwgtp21 int, pwgtp22 int, pwgtp23 int,
+ pwgtp24 int, pwgtp25 int, pwgtp26 int, pwgtp27 int, pwgtp28 int, pwgtp29 int, pwgtp30 int, pwgtp31 int, pwgtp32 int, pwgtp33 int, pwgtp34 int, pwgtp35 int, pwgtp36 int, pwgtp37 int,
+ pwgtp38 int, pwgtp39 int, pwgtp40 int, pwgtp41 int, pwgtp42 int, pwgtp43 int, pwgtp44 int, pwgtp45 int, pwgtp46 int, pwgtp47 int, pwgtp48 int, pwgtp49 int, pwgtp50 int, pwgtp51 int,
+ pwgtp52 int, pwgtp53 int, pwgtp54 int, pwgtp55 int, pwgtp56 int, pwgtp57 int, pwgtp58 int, pwgtp59 int, pwgtp60 int, pwgtp61 int, pwgtp62 int, pwgtp63 int, pwgtp64 int, pwgtp65 int,
+ pwgtp66 int, pwgtp67 int, pwgtp68 int, pwgtp69 int, pwgtp70 int, pwgtp71 int, pwgtp72 int, pwgtp73 int, pwgtp74 int, pwgtp75 int, pwgtp76 int, pwgtp77 int, pwgtp78 int, pwgtp79 int,
+ pwgtp80 int );
+
+ 
+create table acsb as ( select * from acsa ) with data ;
+create table acsc as ( select * from acsa ) with data ;
+create table acsd as ( select * from acsa ) with data ;
+ 
+copy 3000000 offset 2 records into acsa from 'C:\Users\user\AppData\Roaming\MonetDB5\dbfarm\demo\ss10pusa.csv' using delimiters ',','\n','"' NULL as '' ;
+copy 3000000 offset 2 records into acsb from 'C:\Users\user\AppData\Roaming\MonetDB5\dbfarm\demo\ss10pusb.csv' using delimiters ',','\n','"' NULL as '' ;
+copy 3000000 offset 2 records into acsc from 'C:\Users\user\AppData\Roaming\MonetDB5\dbfarm\demo\ss10pusc.csv' using delimiters ',','\n','"' NULL as '' ;
+copy 3000000 offset 2 records into acsd from 'C:\Users\user\AppData\Roaming\MonetDB5\dbfarm\demo\ss10pusd.csv' using delimiters ',','\n','"' NULL as '' ;
+
+
+create table acs3yr as (select * from acsa union all select * from acsb union all select * from acsc union all select * from acsd) with data;
+
+alter table acs3yr add column idkey int auto_increment;
+
+
+drop table acsa;
+drop table acsb;
+drop table acsc;
+drop table acsd;
