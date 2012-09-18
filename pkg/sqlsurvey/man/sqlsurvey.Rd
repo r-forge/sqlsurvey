@@ -66,6 +66,7 @@ set up a {.monetdb} file in the home directory.
 \seealso{\code{\link{sqlrepsurvey}},\code{\link[RMonetDB]{MonetDB}}}
 \examples{
 \dontrun{
+## CRAN policies mean that this package isn't allowed to have examples that run.
 ## assumes data already in database
 library(sqlsurvey)
 monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")

@@ -22,7 +22,7 @@ Object of class \code{sqlsurvey} or \code{sqlrepsurvey}.  This will not
 be modified in any way
 }
   \item{subset}{
-R logical expression specifying the subset to keep
+R logical expression specifying the subset to keep. The syntax is slightly restricted as the expression must be translatable into SQL: \code{log},\code{exp}, arithmetic,logical, and trigonometric functions, \code{\%in\%}, but not user-defined functions.
 }
   \item{\dots}{
 for methods

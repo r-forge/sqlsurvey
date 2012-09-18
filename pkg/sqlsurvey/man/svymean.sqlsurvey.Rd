@@ -36,6 +36,10 @@ se = FALSE, keep.estfun = FALSE, ...)
 
 \seealso{ \code{\link{sqlmodelmatrix}}}
 \examples{
+\dontrun{
+svytotal(~sex, acs, byvar=~st)
+svymean(~wagp,subset(acs, wagp>0), byvar=~sex)
+}
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

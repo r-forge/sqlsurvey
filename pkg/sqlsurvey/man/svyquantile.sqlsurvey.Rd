@@ -27,7 +27,11 @@ Estimates quantiles for large surveys.  For surveys with replicate weights, also
 
 \seealso{\code{\link{sqlsurvey}}}
 \examples{
+\dontrun{
 ##
+svyquantile(~bpxsar, design=sqhanes, quantile=0.5)
+svyquantile(~agep, design=acs, quantile=0.5,se=TRUE)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

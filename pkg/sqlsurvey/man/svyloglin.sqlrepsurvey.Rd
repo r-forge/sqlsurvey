@@ -43,7 +43,9 @@ Rao, JNK, Scott, AJ (1984) "On Chi-squared Tests For Multiway Contingency Tables
 \code{\link{svyloglin}}
 }
 \examples{
-
+\dontrun{
+svychisq(~sex+st,design=acs)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

@@ -81,6 +81,7 @@ an object of class \code{sqlrepsurvey}
 }
 \examples{
 \dontrun{
+## CRAN policies mean that this package isn't allowed to have examples that run.
 ## assumes data already in database
 library(sqlsurvey)
 monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")

@@ -1,6 +1,6 @@
 import(survey)
 export(sqlsurvey, sqlmodelmatrix,sqlvar, svylm,
-       sqlrepsurvey,sqlhexbin,sqlscatter)
+       sqlrepsurvey,sqlhexbin,sqlscatter,sqlsubst)
 
 S3method(close,sqlsurvey)
 S3method(open,sqlsurvey)

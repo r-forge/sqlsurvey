@@ -1,5 +1,6 @@
 \name{sqlmodelmatrix}
 \alias{sqlmodelmatrix}
+\alias{head.sqlmm}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Create model matrix in a SQL table }
 \description{
@@ -30,17 +31,17 @@ An object of class \code{sqlmodelmatrix}
 
 \seealso{\code{link{open.sqlmodelmatrix}} for reconnecting saved objects }
 \examples{
-sqclus1<-sqlsurvey(id="dnum", fpc="fpc", weights="pw", strata="fpc",
-   data=system.file("apiclus1.db",package="surveyNG"),
-   table.name="clus1", key="snum")
+\dontrun{
 mm <- sqlmodelmatrix(api00~stype*comp_imp+ell+api99, sqclus1)
 dbGetQuery(sqclus1$conn,
      sqlsubst("select * from \%\%mm\%\% limit 2", list(mm=mm$table)))
+head(mm)
 dbListTables(sqclus1$conn)
 rm(mm)
 gc()
 dbListTables(sqclus1$conn)
 close(sqclus1)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

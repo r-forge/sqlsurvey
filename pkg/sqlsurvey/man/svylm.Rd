@@ -21,10 +21,7 @@ svylm(formula, design,...)
 }
 \seealso{ \code{\link{sqlmodelmatrix}}}
 \examples{
-sqclus1<-sqlsurvey(id="dnum", fpc="fpc", weights="pw", strata="fpc",
-   data=system.file("apiclus1.db",package="surveyNG"),
-   table.name="clus1", key="snum")
-svylm(api00~api99+stype*comp_imp, design=sqclus1)
-close(sqclus1)
-}
+\dontrun{
+svylm(bpxsar~bpxdar+riagendr+ridreth1,design=sqhanes)
+}}
 \keyword{survey}

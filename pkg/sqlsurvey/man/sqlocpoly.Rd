@@ -41,20 +41,16 @@ The binning is performed in SQL, so for large data sets the computation
   methods
 }
 
-\seealso{\code{\link{sqlsurvey}} }
-\examples{
-sqclus1<-sqlsurvey(id="dnum", fpc="fpc", weights="pw", strata="fpc",
-   data=system.file("apiclus1.db",package="surveyNG"),
-   table.name="clus1", key="snum")
-
-dens <- sqlocpoly(~api00, sqclus1, bandwidth=50)
-smooth <- sqlocpoly(api00~api99, sqclus1, bandwidth=50)
+\seealso{\code{\link{sqlsurvey}},\code{\link{sqlrepsurvey}},\code{\link[survey]{svysmooth}} }
+\examples{\dontrun{
+dens <-svysmooth(~bpxdar, sqhanes, bandwidth=50)
+smooth <- svysmooth(bpxsar~bpxdar,subset(sqhanes,bpxdar>40), sample.bandwidth=5000)
 
 dens
 plot(dens)
 plot(smooth)
 
-close(sqclus1)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

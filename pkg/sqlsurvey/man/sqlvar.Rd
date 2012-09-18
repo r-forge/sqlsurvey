@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Horvitz-Thompson estimator for multistage sampling}
 \description{
-Computes the estimated variance matrix for a population total estimate
+Computes the estimated (linearisation) variance matrix for a population total estimate
 under stratified multistage cluster sampling with or without
 replacement. The variables must be in a separate table from the main
 survey data table; they will typically be estimating functions. The
