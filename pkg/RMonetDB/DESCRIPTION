@@ -1,0 +1,8 @@
+Package: RMonetDB
+Version: 0.3-1
+Title: Provides access to MonetDB through the JDBC interface
+Author: Thomas Lumley, based on code by Simon Urbanek
+Maintainer: Thomas Lumley <tlumley@u.washington.edu>
+Depends: methods, DBI, rJava (>= 0.4-15), R (>= 2.4.0)
+Description: A slight modification of RJDBC to handle idiosyncracies in MonetDB JDBC driver
+License: GPL-2

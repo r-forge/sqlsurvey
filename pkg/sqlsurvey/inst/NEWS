@@ -1,0 +1,39 @@
+0.4-1 faster svyquantile using random sample to start.
+
+    svyquantile drops missing observations
+
+    better approach to subsets for replicate-weights.
+
+    svyloglin() method for sqlrepsurvey
+
+    svylm() works with MonetDB's flavour of SQL.
+
+    svychisq() for Rao-Scott tests (via svyloglin)
+
+    simple expressions can be used: eg, ~I(relp %in% 0:15)
+
+    ~cut(x,breaks) can be used.
+
+0.4 Renamed to sqlsurvey.
+
+    Added support for replicate weights
+
+    switched to JDBC and MonetDB rather than SQLite
+
+0.3 faster creation from existing SQLite database
+
+    added sqlocpoly for smoothing and density estimation
+
+    added sqlhexbin
+    
+    open.sqlsurvey() now checks for the existence of the file
+
+    sqlsubst() allows (and ignores) NULL replacement values
+
+
+0.2 added svylm
+
+    allowed sampling with replacement
+
+0.1  Initial version
+
