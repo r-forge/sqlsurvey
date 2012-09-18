@@ -49,9 +49,9 @@ echo $contents; } ?>
 
  Useful notes:
 <ul>
-   <li> While it is possible to read data into R and then save into MonetDB using <tt>dbWriteTable</tt>, this is very inefficient for large files and it is better to construct the database table and read the data directly using the MonetDB console client. <a href="reading_acs3yr.txt">Here</a> is a script that reads the whole-US <a href="http://factfinder2.census.gov/faces/nav/jsf/pages/searchresults.xhtml?refresh=t">ACS 3yr person data</a>, which comes in four <tt>CSV</tt> files into a table in MonetDB.
+   <li> While it is possible to read data into R and then save into MonetDB using <tt>dbWriteTable</tt>, this is very inefficient for large files and it is better to construct the database table and read the data directly using the MonetDB console client. <a href="reading_acs3yr.txt">Here</a> is a script that reads the whole-US <a href="http://factfinder2.census.gov/faces/nav/jsf/pages/searchresults.xhtml?refresh=t">ACS 3yr person data</a>, which comes in four <tt>CSV</tt> files, into a table in MonetDB.
 <li> <a href="acsanalyses.R">Examples</a> of setting up and using an ACS 3-yr person file.
-<li> Here is a <a href="verify.Rout">R output</a> that reproduces some of the <a href="http://www.census.gov/acs/www/Downloads/data_documentation/pums/Estimates/pums_estimates10.lst">Census Bureau totals for the 2008-2010 ACS</a>
+<li> Here is a <a href="verify.Rout">R transcript</a> that reproduces some of the <a href="http://www.census.gov/acs/www/Downloads/data_documentation/pums/Estimates/pums_estimates10.lst">Census Bureau totals for the 2008-2010 ACS</a>
 </ul>
 
 
@@ -70,10 +70,11 @@ echo $contents; } ?>
 <li> Only with replicate weights
 <ul>
 <li> Quantiles with standard errors and confidence intervals(<tt>svyquantile</tt>)
-<li> Loglinear models, with Rao-Scott tests, including tests for independence in 2x2 tables (<tt>svyquantile</tt>, <tt>svychisq</tt>)
+<li> Loglinear models, with Rao-Scott tests, including tests for independence in 2x2 tables (<tt>svyloglin</tt>, <tt>svychisq</tt>)
 </ul>
 </ul>
-None of the analyses will modify any existing database table, and the R survey design objects behave as if they are passed by value, like ordinary R objects. Temporary tables are automatically dropped when the R objects referring to them are garbage-collected.
+<p>
+None of the analyses will modify any existing database table, and the R survey design objects behave as if they are passed by value, like ordinary R objects. Temporary tables are automatically dropped when the R objects referring to them are garbage-collected. The basic design ideas for the package were described in a<a href="http://www.r-project.org/conferences/useR-2007/program/presentations/lumley.pdf">presentation</a> at UseR 2007, but were not developed further because of lack of demand.  The American Community Survey and some medical-record surveys such as the Nationwide Inpatient Sample do represent a real need, so the project has been restarted.  MonetDB turns out to be much faster than SQLite for this sort of analysis, and interactive analysis of millions of records on an ordinary desktop is quite feasible. </p>
 
 <p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 
