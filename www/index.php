@@ -59,21 +59,21 @@ echo $contents; } ?>
    <ul>
 <li> For surveys using either linearisation or replicate weights
 <ul>
-   <li> Means and totals with standard errors, by grouping variables
-<li> Quantiles
-<li> Thinned or hexagonally binned scatterplots
-<li> Smoothers and density estimators
-   <li> Linear regression models (with standard errors)
-<li> Contingency tables
-<li> Subpopulation estimates
+   <li> Means (<tt>svymean</tt>) and totals (<tt>svytotal</tt>) with standard errors, by grouping variables
+<li> Quantiles (<tt>svyquantile</tt>)
+<li> Thinned or hexagonally binned scatterplots (<tt>svyplot</tt>)
+<li> Smoothers and density estimators (<tt>svysmooth</tt>)
+   <li> Linear regression models (with standard errors) (<tt>svylm</tt>)
+<li> Contingency tables (<tt>svytable</tt>)
+<li> Subpopulation estimates (<tt>subset</tt>)
 </ul>
 <li> Only with replicate weights
 <ul>
-<li> Quantiles with standard errors and confidence intervals
-<li> Loglinear models, with Rao-Scott tests, including tests for independence in 2x2 tables
+<li> Quantiles with standard errors and confidence intervals(<tt>svyquantile</tt>)
+<li> Loglinear models, with Rao-Scott tests, including tests for independence in 2x2 tables (<tt>svyquantile</tt>, <tt>svychisq</tt>)
 </ul>
 </ul>
-None of the analyses will modify any existing database table, and the R survey design objects behave as if they are passed by value, like ordinary R objects.
+None of the analyses will modify any existing database table, and the R survey design objects behave as if they are passed by value, like ordinary R objects. Temporary tables are automatically dropped when the R objects referring to them are garbage-collected.
 
 <p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 
