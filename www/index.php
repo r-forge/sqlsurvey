@@ -33,7 +33,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- get project title  -->
 <!-- own website starts here, the following may be changed as you like -->
 
-  <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
+<?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
 	$contents .= fread($handle, 8192);
@@ -45,7 +45,8 @@ echo $contents; } ?>
 
   <p> This project has two packages: sqlsurvey, for analysis of large surveys, and RMonetDB, used by sqlsurvey to communicate with the MonetDB database. RMonetDB is a slight modification of Simon Urbanek's RJDBC to handle some idiosyncracies in MonetDB </p>
 
-   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a>. Under Windows it is important to use a 64-bit version of MonetDB to allow creation of large databases. </p>
+   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a>, so installation is more complicated than just installing an R package.
+ Under Windows it is important to use a 64-bit version of MonetDB to allow creation of large databases. </p>
 
 Examples (small enough to play with):
 <ul>
