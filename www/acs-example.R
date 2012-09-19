@@ -8,7 +8,7 @@ dbDisconnect(monet)
 
 ## potentially in another session
 monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")
-alacs<-sqlrepsurvey("pwgtp",paste("pwgtp",1:80,sep=""),scale=4/80,rscales=rep(1,80), mse=TRUE,database="jdbc:monetdb://localhost/ACS", driver=monetdriver,key="idkey",user="monetdb",password="monetdb",table.name="alabama",check.factors=TRUE)
+alacs<-sqlrepsurvey("pwgtp",paste("pwgtp",1:80,sep=""),scale=4/80,rscales=rep(1,80), mse=TRUE,database="jdbc:monetdb://localhost/demo", driver=monetdriver,key="idkey",user="monetdb",password="monetdb",table.name="alabama",check.factors=TRUE)
 
 ## totals by age and sex
 svytotal(~sex,alacs)

@@ -1,0 +1,18 @@
+Installation instructions.
+
+Make sure you have Java installed on your computer (not just in your web browser). If not, download and install the (free) Java JRE from Oracle. 
+
+Download MonetDB for your system and install it following the instructions. This will also create a database store, by default called 'demo' (it's hard to change the default under Windows, but fairly easy on Unix). The full address of the database is jdbc:monetdb://localhost/demo, or replacing 'demo' with whatever the database is called. The 'Getting Started' instructions tell you some things, like how to create users and change passwords, that are probably important only on multi-user computers. The MonetDB documentation is even more terse and lacking in redundancy than the R documentation. 
+
+If the MonetDB installation doesn't include the Java files (it doesn't on Windows), download them and put them in any convenient directory. You will need to specify the full path to the file monetdb-jdbc-2.4.jar in this directory when starting a database connection from R.
+
+To install the pre-built binary R packages you must have a current version of R. In R, install the two packages with the command
+ install.packages(c("RMonetDB","sqlsurvey"), repos=c("http://cran.r-project.org","http://R-Forge.R-project.org"), dep=TRUE)
+Otherwise you can download the source code packages and install them. This does not require any additional tools beyond what is in the standard R distribution.
+
+Now try one of the example scripts. Make sure the MonetDB server is running first.  In the line
+  monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")
+replace the file path in quotes by the full path to wherever you put the monetdb-jdbc-2.4.jar Java file. If you used a name other than 'demo' for the database, then replace "jdbc:monetdb://localhost/demo" in the script by the address of the database. For example, mine is called "jdbc:monetdb://localhost/ACS"
+
+
+When you finish a session, use close() on any sqlsurvey or sqlrepsurvey objects you have created in R, to make sure that temporary tables are properly tidied up, and shut down the MonetDB server before shutting down your computer. 
