@@ -828,7 +828,7 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   if (!all( all.names(formula) %in% c(ok.names, names(design$zdata))))
     stop("unsupported transformations in formula")
   tms<-terms(formula)
-  mf<-model.frame(formula,design$zdata)
+  mf<-model.frame(formula,design$zdata,na.action=na.pass)
   mm<-model.matrix(tms, mf)
   ntms<-max(attr(mm,"assign"))
   mftable<-basename(tempfile("_mf_"))
@@ -1012,7 +1012,7 @@ sqlscatter<-function(formula,design,npoints=1000,nplots=4,...){
   
   vars<-union(all.vars(formula),all.vars(substitute(list(...))))
   samp<-dbGetQuery(design$conn, sqlsubst("select %%wt%%,%%vars%% from %%table%% sample %%n%%",list(vars=vars,wt=wtname, table=tablename,n=n)))
-
+  
   m<-match.call(expand.dots=FALSE)
   for(i in 1:nplots){
     idx<-sample(1:n,npoints,prob=samp[,1], replace=TRUE)
