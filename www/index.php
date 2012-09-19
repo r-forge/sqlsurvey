@@ -33,7 +33,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- get project title  -->
 <!-- own website starts here, the following may be changed as you like -->
 
-<?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
+  <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
 	$contents .= fread($handle, 8192);
@@ -50,8 +50,8 @@ echo $contents; } ?>
 
 Examples (small enough to play with):
 <ul>
-<li> ACS 3-year data for Alabama (47k records): <a href="ss10pal.csv">CSV data</a>, <a href="acs-example.R">R script</a>
-<li> Some blood pressure data from NHANES (linearisation variances):  <a href="nhanesbp.rda">.RDA file of data</a>, <a href="nhanes-example.R">R script</a>.
+<li> ACS 3-year data for Alabama (47k records, replicate weights): <a href="ss10pal.csv">CSV data</a>, <a href="acs-example.R">R script</a>
+<li> Some blood pressure data from NHANES (18k records, linearisation variances):  <a href="nhanesbp.rda">.RDA file of data</a>, <a href="nhanes-example.R">R script</a>.
 </ul>
 
  Useful notes:
