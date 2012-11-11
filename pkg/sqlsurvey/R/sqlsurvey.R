@@ -246,30 +246,30 @@ sqlexpr<-function(expr, design){
 }
 
 
-sqlcutfn<-function(breaks){
-	n<-length(breaks)
-	last<-NULL
-	others<-NULL
-	first<-paste("when x<=",breaks[1]," then return ' to ",breaks[1],"';",sep="")
-	if (n>1){
-		last<-paste("when x>",breaks[n]," then return '",breaks[n],"+';",sep="")
-		others<-paste("when (x<=",breaks[-1]," and x>",breaks[-n],") then return '",breaks[-n],"+ to ",breaks[-1],"';",sep="")
-		}
-	whens<-paste(c(first,last,others),collapse="\n")	
-	
-	fname<-basename(tempfile("rec_"))
-			
-	query<-paste("create function", fname,"(x double precision)",
-				"returns varchar(255)",
-				"begin",
-			    "case",
-			    whens,
-  				"else return null;",
-  				"end case;",  			
-				"end;",sep="\n")
-	tidy<-paste("drop function",fname)			
-	list(name=fname, construct=query,destroy=tidy)	
-	}
+sqlcutfn<-function (breaks) 
+{
+    n <- length(breaks)
+    numbers<-format(1:(n+1))
+    last <- NULL
+    others <- NULL
+    first <- paste("when x<=", breaks[1], " then return '",numbers[1],". to ", 
+        breaks[1], "';", sep = "")
+    if (n > 1) {
+        last <- paste("when x>", breaks[n], " then return '", 
+            numbers[n + 1], ". ", breaks[n], "+';", sep = "")
+        others <- paste("when (x<=", breaks[-1], " and x>", breaks[-n], 
+            ") then return '", numbers[2:n], ". ", breaks[-n], "+ to ", 
+            breaks[-1], "';", sep = "")
+    }
+    whens <- paste(c(first, last, others), collapse = "\n")
+    fname <- basename(tempfile("rec_"))
+    query <- paste("create function", fname, "(x double precision)", 
+        "returns varchar(255)", "begin", "case", whens, "else return null;", 
+        "end case;", "end;", sep = "\n")
+    tidy <- paste("drop function", fname)
+    list(name = fname, construct = query, destroy = tidy)
+}
+
 
 
   
@@ -332,13 +332,21 @@ subset.sqlsurvey<-function(x,subset,...){
 
 sqlsurvey<-function(id, strata=NULL, weights=NULL, fpc="0",driver,
                        database, table.name=basename(tempfile("_tbl_")),
-                       key, check.factors=TRUE,...){
+                       key, check.factors=10,...){
 
 
   db<-dbConnect(driver,database,...)
 
-  zdata<-make.zdata(db,table.name,factors=if(check.factors) 9 else NULL)
-
+  if (is.data.frame(check.factors)){
+    zdata<-check.factors
+    actualnames<-dbListFields(db,table.name)
+    if (!all(names(zdata) %in% actualnames)) stop("supplied data frame includes variables not in the data table")
+    if (!all(actualnames %in% names(zdata))) message("levels for some variables not supplied: assumed numeric")
+    for(v in setdiff(actualnames,names(zdata))) zdata[[v]]<-numeric(0)   
+  } else{
+    zdata<-make.zdata(db,table.name,factors=check.factors)
+  }
+  
   rval<-list(conn=db, table=table.name,
            id=id, strata=strata,weights=weights,fpc=fpc,
            call=sys.call(), zdata=zdata, key=key
@@ -744,15 +752,27 @@ sqlvar<-function(U, utable, design){
      strata<-unique(c(units, design$strata[stage]))
      units<-unique(c(units, design$strata[stage], design$id[stage]))
 
-     query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, %%fpc%% as _fpc_, %%strata%%
+     if(length(strata)>0){
+       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, %%fpc%% as _fpc_, %%strata%%
                       from 
                             (select %%strata%%, %%sumUs%%, %%fpc%% from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp
                       group by %%strata%%" ,
-                     list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
-                          avgsq=avgsq,fpc=design$fpc[stage], strata=strata,
-                          basetable=tablename, key=design$key
-                          )
-                     )
+                       list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
+                            avgsq=avgsq,fpc=design$fpc[stage], strata=strata,
+                            basetable=tablename, key=design$key
+                            )
+                       )
+     } else {
+       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, %%fpc%% as _fpc_
+                      from 
+                            (select  %%sumUs%%, %%fpc%% from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp" ,
+                       list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
+                            avgsq=avgsq,fpc=design$fpc[stage],
+                            basetable=tablename, key=design$key
+                            )
+                       )
+ 
+     }
      result<-dbGetQuery(design$conn, query)
      result<-subset(result, `_fpc_`!=`_n_`) ## remove certainty units
      if (is.null(oldstrata)){
@@ -988,12 +1008,12 @@ sqlhexbin<-function(formula, design, xlab=NULL,ylab=NULL, ...,chunksize=10000){
 	}
 
 
-svyplot.sqlsurvey<-svyplot.sqlrepsurvey<-function (formula, design, style = c("hex", "subsample"), ...) 
+svyplot.sqlsurvey<-svyplot.sqlrepsurvey<-function (formula, design, style = c("hex", "grayhex","subsample"), ...) 
 {
   style <- match.arg(style)
   mf<-match.call()
-  mf[[1]]<-switch(style, hex = as.name("sqlhexbin"), subsample = as.name("sqlscatter"))
-  mf$style<-NULL
+  mf[[1]]<-switch(style, hex = as.name("sqlhexbin"), grayhex=as.name("sqlhexbin"),subsample = as.name("sqlscatter"))
+  mf$style<-switch(style, hex="centroids",grayhex=NULL,subsample=NULL)
   invisible(eval(mf,parent.frame()))
 }
 

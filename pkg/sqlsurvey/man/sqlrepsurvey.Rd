@@ -47,10 +47,12 @@ If \code{TRUE} compute standard errors based on deviations of replicates
 from the point estimate, if \code{FALSE} use deviations from the mean of
 the replicates.
 }
-  \item{check.factors}{
-If \code{TRUE}, attempt to determine factor levels by querying the
-database. This can be slow
-}
+ \item{check.factors}{If this is a non-zero number, R will attempt to determine which
+    variables in the database table are factors based on having at most
+    this many distinct values, and will store information on the levels in
+    the survey design object.  This can be slow for a very large
+    survey.  \code{check.factors} can also be a zero-row data frame
+    with the correct factor levels for the factor variables.}
   \item{\dots}{
 Other arguments to \code{dbConnect}, such as user and password
 }
@@ -65,7 +67,10 @@ The \code{check.factors} operation can be slow (eg over an hour for an
 American Community Survey dataset with 9 million records and 300
 variables). If the survey object is saved with \code{save()}, it can be
 reconnected to the database with \code{open}, so that it only needs to
-be created once.
+be created once.  The most flexible and fastest approach is usually to create the zero-row
+data frame manually from the data documentation: only the columns for
+factor variables need to be supplied, as the code will assume other
+variables are numeric.
 
   
 \code{close} closes the database connection, first attempting to
@@ -81,7 +86,6 @@ an object of class \code{sqlrepsurvey}
 }
 \examples{
 \dontrun{
-## CRAN policies mean that this package isn't allowed to have examples that run.
 ## assumes data already in database
 library(sqlsurvey)
 monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")

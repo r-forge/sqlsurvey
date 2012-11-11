@@ -12,7 +12,7 @@ svylm(formula, design,...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{formula}{Model formula }
+  \item{formula}{Model formula. Null models with only an intercept are not supported }
   \item{design}{\code{sqlsurvey} object }
 \item{\dots}{dots}
 }

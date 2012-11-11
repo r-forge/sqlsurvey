@@ -42,10 +42,21 @@ subset.sqlrepsurvey<-function(x,subset,...){
 
 sqlrepsurvey<-function(weights, repweights, scale,rscales,
                        driver,database, table.name,
-                       key="row_names",mse=FALSE,check.factors=TRUE,...){
+                       key="row_names",mse=FALSE,check.factors=10,...){
 
   db<-dbConnect(driver,database,...)
-  zdata<-make.zdata(db,table.name,factors=if(check.factors) 9 else NULL)
+
+  
+  if (is.data.frame(check.factors)){
+    zdata<-check.factors
+    actualnames<-dbListFields(db,table.name)
+    if (!all(names(zdata) %in% actualnames)) stop("supplied data frame includes variables not in the data table")
+    if (!all(actualnames %in% names(zdata))) message("levels for some variables not supplied: assumed numeric")
+    for(v in setdiff(actualnames,names(zdata))) zdata[[v]]<-numeric(0)   
+  } else{
+    zdata<-make.zdata(db,table.name,factors=check.factors)
+  }
+  
 
   rval<-list(conn=db, table=table.name, data=database,
            weights=weights,repweights=repweights,
@@ -290,7 +301,7 @@ svylm.sqlrepsurvey<-function(formula, design,...){
     
   names(beta)<-termnames
   dimnames(v)<-list(termnames, termnames)
-  class(v)<-"svrepstat"
+  class(beta)<-"svrepstat"
   attr(beta, "var")<-v
   beta
 }
