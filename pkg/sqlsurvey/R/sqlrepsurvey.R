@@ -57,7 +57,12 @@ sqlrepsurvey<-function(weights, repweights, scale,rscales,
     zdata<-make.zdata(db,table.name,factors=check.factors)
   }
   
-
+  if (length(repweights)==1) {
+    cat("repweights expression:",repweights,"expanded to:\n")
+    repweights<-grep(repweights,dbListFields(db,table.name),value=TRUE)
+    print(repweights)
+  }
+  
   rval<-list(conn=db, table=table.name, data=database,
            weights=weights,repweights=repweights,
            call=sys.call(), zdata=zdata, key=key

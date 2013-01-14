@@ -13,16 +13,20 @@ make.zdata<-function(db, table, factors=9){
     }
     class(rval)<-"data.frame"
     return(rval[FALSE,])
-  } else { ##numeric limit on levels
+  } else {
+    ##numeric limit on levels
+    if (!is.numeric(factors) || length(factors)>1)
+        stop("invalid specification of 'factors'")
+    if (factors<=0) return(rval[FALSE,])
+
     cat("checking factor levels\n")
     for(f in names(rval)){
       cat(".")
-      if (!is.numeric(factors) || length(factors)>1)
-        stop("invalid specification of 'factors'")
-      levs<- dbGetQuery(db,
+       levs<- dbGetQuery(db,
                         sqlsubst("select  %%v%% from %%tbl%% limit %%n%%",
                                  list(v=f, tbl=table, n=factors*10)))[[1]]
-      if (length(na.omit(unique(levs)))<=factors){
+      
+      if ((length(na.omit(unique(levs)))<=factors)){
         levs<- dbGetQuery(db,
                           sqlsubst("select distinct %%v%% from %%tbl%% order by %%v%% limit %%n%%",
                                    list(v=f, tbl=table, n=factors+2)))[[1]]
@@ -42,7 +46,7 @@ close.sqlsurvey<-function(con, ...){
 }
 
 open.sqlsurvey<-function(con, driver, ...){  
-  con$conn<-dbConnect(driver, url=con$data,...)
+  con$conn<-dbConnect(driver, url=con$dbname,...)
   if (!is.null(con$subset)){
     con$subset$conn<-con$conn
   }
@@ -205,7 +209,10 @@ sqlexpr<-function(expr, design){
    out <-textConnection("str","w",local=TRUE)
    inorder<-function(e){
      if(length(e) ==1) {
-       cat(e, file=out)
+       if (is.character(e))
+         cat("'",e,"'",file=out,sep="")
+       else
+         cat(e, file=out)
      } else if (e[[1]]==quote(is.na)){
      	cat("(",file=out)
      	inorder(e[[2]])
@@ -305,7 +312,7 @@ subset.sqlsurvey<-function(x,subset,...){
 
   subset<-substitute(subset)
   rval<-new.env()
-  rval$subset<-c(x$subset,sqlexpr(subset))
+  rval$subset<-sqlexpr(subset)
 
   rval$table<-basename(tempfile("_sbs_"))
   rval$idx<-basename(tempfile("_idx_"))
@@ -537,7 +544,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
       bycols<-result[,-(1:p),drop=FALSE]
       qbycols<-lapply(bycols, function(v) if(is.character(v)) lapply(v,adquote) else v)
       bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" & "))
-      uexpr<-as.vector(outer(termnames, bynames, function(i,j) paste(i,"*(1*",j,"))",sep="")))
+      uexpr<-as.vector(outer(termnames, bynames, function(i,j) paste(i,"*(1*(",j,"))",sep="")))
       unames<-paste("_",as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep="")
       query<-sqlsubst("create table %%utbl%% as (select %%key%%, %%vars%% from %%table%%)  with data",
                       list(utbl=utable, key=design$key,
@@ -587,7 +594,7 @@ svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,...){
     pmid<-result[[1]]/W
     if (mid==up && pmid>quant) return(mid)
     if (mid==low){
-      query<-sqlsubst("select sum(%%wt%%)from %%table%% where %%var%%==%%mid%% ",
+      query<-sqlsubst("select sum(%%wt%%)from %%table%% where %%var%% = %%mid%% ",
                       list(var=varname, mid=mid,table=design$table, wt=wtname))
       pexactmid<-dbGetQuery(design$conn,query)
       if (pmid+pexactmid>quant) return(up)
