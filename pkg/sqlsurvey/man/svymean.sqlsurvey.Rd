@@ -6,7 +6,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Means and totals}
 \description{
-Horvitz-Thompson estimator of means and totals for a large survey. The functions computes cell proportions and counts for factor variables.  For surveys with replicate weights (\code{sqlrepsurvey}) it is possible to use expressions involving mathematical functions, logical operations, \code{\%in\%}, and \code{cut}.
+Horvitz-Thompson estimator of means and totals for a large survey. The functions computes cell proportions and counts for factor variables.  For surveys with replicate weights (\code{sqlrepsurvey}) only, it is possible to use expressions involving mathematical functions, logical operations, \code{\%in\%}, and \code{cut}.
 }
 \usage{
 \method{svymean}{sqlrepsurvey}(x, design, na.rm = TRUE, byvar = NULL, se = TRUE, 

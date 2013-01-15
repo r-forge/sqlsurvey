@@ -1,3 +1,13 @@
+0.5  always treat character variables as factors
+     
+     fix bug in subset.sqlsurvey design 
+
+     fix typo in svyquantile for sqlsurvey design
+
+     sqlexpr prints character constants with quotes
+
+     fix typo in open.sqlsurvey [all Anthony D'Amico]
+
 0.4-3 allow linearisation variances without any strata.
 
 0.4-1 faster svyquantile using random sample to start.

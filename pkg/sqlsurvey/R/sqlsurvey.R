@@ -422,7 +422,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   
   ## use sqlmodelmatrix if we have factors or interactions
   basevars<-rownames(attr(tms,"factors"))
-  if (any(sapply(design$zdata[basevars], function(v) length(levels(v)>0)))
+  if (any(sapply(design$zdata[basevars], function(v) (length(levels(v))>0) || is.character(v)))
       || any(attr(tms,"order")>1)){
     mm<-sqlmodelmatrix(x,design, fullrank=FALSE)
     termnames<-mm$terms
@@ -509,7 +509,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
   
   ## use modelmatrix if we have factors or interactions
   basevars<-rownames(attr(tms,"factors"))
-  if (any(sapply(design$zdata[basevars], function(v) length(levels(v)>0)))
+  if (any(sapply(design$zdata[basevars], function(v) (length(levels(v))>0)) || is.character(v))
       || any(attr(tms,"order")>1)){
     mm<-sqlmodelmatrix(x,design, fullrank=FALSE)
     termnames<-mm$terms
@@ -650,7 +650,8 @@ dropmissing<-function(expr,design,na.rm){
   }
 
    for(v in all.vars(expr)){
-     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", list(wt=wtname, table=tablename, var=v)))[[1]][1]
+     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", \
+                                                list(wt=wtname, table=tablename, var=v)))[[1]][1]
      if (!is.na(nmissing) && nmissing>0) break
    }
    if (!is.na(nmissing) && nmissing>0){
@@ -849,15 +850,15 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
     else 
       paste(rval,"as",make.db.names(design$conn, termname))
   }
+  
   if (!all(all.vars(formula) %in% names(design$zdata)))
     stop("some variables not in database")
   ok.names<-c("~","I","(","-","+","*")
   if (!all( all.names(formula) %in% c(ok.names, names(design$zdata))))
     stop("unsupported transformations in formula")
-  tms<-terms(formula)
-  mf<-model.frame(formula,design$zdata,na.action=na.pass)
-  mm<-model.matrix(tms, mf)
-  ntms<-max(attr(mm,"assign"))
+
+
+
   mftable<-basename(tempfile("_mf_"))
   mmtable<-basename(tempfile("_mm_"))
 
@@ -867,6 +868,20 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   dbSendUpdate(design$conn, sqlsubst("create unique index %%idx%% on %%tbl%%(%%key%%)",
                                    list(idx=basename(tempfile("idx")), tbl=mftable,
                                         key=design$key)))
+  
+  tms<-terms(formula)
+  mf<-model.frame(formula,design$zdata,na.action=na.pass)
+ 
+  ## character variables get temporary factorness
+  for(v in all.vars(formula)){
+    if (is.character(mf[[v]])){
+      charlevels<-dbGetQuery(design$conn, paste("select distinct",v,"from",mftable))[[1]]
+      mf[[v]]<-factor(mf[[v]],levels=charlevels)
+    }   
+  }
+
+  mm<-model.matrix(tms, mf)
+  ntms<-max(attr(mm,"assign"))
 
 
   patmat<-attr(tms,"factors")
@@ -876,6 +891,7 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
     contrastlevels<-function(f) {levels(f)[-1]}
   else
     contrastlevels<-levels
+
   
   mmterms<-lapply(1:ntms,
                     function(i){

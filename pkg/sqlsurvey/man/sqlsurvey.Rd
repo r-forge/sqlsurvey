@@ -30,12 +30,7 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
   \item{table.name}{Name for the data table containing the survey data
     and design variables}
   \item{key}{name of a variable that can be used as a unique key }
-  \item{check.factors}{If this is a non-zero number, R will attempt to determine which
-    variables in the database table are factors based on having at most
-    this many distinct values, and will store information on the levels in
-    the survey design object.  This can be slow for a very large
-    survey.  \code{check.factors} can also be a zero-row data frame
-    with the correct factor levels for the factor variables.}
+  \item{check.factors}{See below}
   \item{con}{survey object or survey model matrix object to be
     disconnected from or reconnected to the database}
   \item{design}{A \code{sqlsurvey} object with an active database
@@ -49,7 +44,29 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
   
 }
 \details{
-The \code{check.factors} operation can be slow (eg over an hour for an
+The point of \code{check.factors} is twofold: to allow numeric variables
+to be treated as factors, and to cache the factor levels for both
+numeric and character variables to speed computation. Ideally, you
+should specify a character vector with list of variable names that
+should be treated as factors.  This is important because coercing a
+variable to factor in inline expressions is not widely supported in the
+sqlsurvey package.
+
+If \code{check.factors} is numeric, variables with fewer than that many
+distinct levels will be treate as factors and have their levels
+cached. Character variables will always be treated as factors, but will
+not have their levels cached if there are more than the limit.
+If \code{check.factors} is zero, only character variables will be
+treated as factors and they will not have their levels cached.
+
+Finally, \code{check.factors} can be a zero-row data frame. The only
+supported way to get this data frame is as the \code{zdata} component
+of another \code{sqlsurvey} or \code{sqlrepsurvey} object -- eg, if the
+factors are computed for one US state and you wish to transfer them to
+another US state without recomputing.
+
+  
+The \code{check.factors} operation with a numeric limit can be slow (eg over an hour for an
 American Community Survey dataset with 9 million records and 300
 variables). If the survey object is saved with \code{save()}, it can be
 reconnected to the database with \code{open}, so that it only needs to

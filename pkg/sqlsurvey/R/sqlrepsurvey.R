@@ -116,7 +116,7 @@ svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
   results<-lapply(seq_along(termnames), function(i){
   	v<-termnames[i]
         e<-rvars[[i]]
-    if (is.factor(eval(e,mf))){
+    if (is.factor(eval(e,mf)) | is.character(eval(e,mf))){
       query<-paste("select ",paste(c(paste("sum(",c(wtname,repweights),")"),v,byvar),collapse=","),"from",tablename,"group by",paste(c(v,byvar),collapse=","),"order by", paste(c(byvar,v),collapse=","))
       dbGetQuery(design$conn,query)
     } else {
@@ -183,7 +183,7 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
   results<-lapply(seq_along(termnames), function(i){
     v<-termnames[i]
     e<-rvars[[i]]
-    if (is.factor(eval(e,mf))){
+    if (is.factor(eval(e,mf)) || is.character(eval(e,mf))){
       query<-paste("select ",paste(c(paste("sum(",c(wtname,repweights),")"),v,byvar),collapse=","),"from",tablename,"group by",paste(c(v,byvar),collapse=","),"order by", paste(c(byvar,v),collapse=","))
       total<-dbGetQuery(design$conn,query)
     } else {
@@ -330,6 +330,8 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
    N<-dim(design)[1]
    n<-round(sqrt(N))*10
 
+   if (!is.numeric(design$zdata[[xname]])) return(NaN)
+
    samp <- dbGetQuery(design$conn, paste("select ",xname," as x_,",wtname, "as wt_,",paste(repweights,collapse=",")," from ",tablename, "sample",n))
    tempdes<-svrepdesign(data=samp, weights=~wt_,  repweights=samp[,-(1:2)],scale=design$scale,rscales=design$rscales,mse=design$mse,type="other")
    guess<-svyquantile(~x_, design=tempdes, quantiles=quantile,se=TRUE,na.rm=TRUE)
@@ -383,7 +385,7 @@ svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
     wtname<-design$subset$weights
     repweights<-design$subset$repweights
   }
-
+  
   if(length(quantiles)>1) stop("only one quantile")
   tms<-terms(x)
   rval<-sapply(attr(tms,"term.labels"), function(v) findQuantile(v,wtname,repweights,tablename,design,quantiles))
