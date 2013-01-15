@@ -650,7 +650,7 @@ dropmissing<-function(expr,design,na.rm){
   }
 
    for(v in all.vars(expr)){
-     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", \
+     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", 
                                                 list(wt=wtname, table=tablename, var=v)))[[1]][1]
      if (!is.na(nmissing) && nmissing>0) break
    }
