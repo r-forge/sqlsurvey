@@ -1,3 +1,8 @@
+0.6  initial experiement with update() function.
+
+     change DESCRIPTION to pretend that RMonetDB isn't a dependency,
+     because of r-forge problem
+
 0.5  always treat character variables as factors
      
      fix bug in subset.sqlsurvey design 

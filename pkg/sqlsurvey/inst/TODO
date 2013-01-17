@@ -1,5 +1,5 @@
 Overall
-- adding variables to a design [while keeping call-by-value]
+- adding variables to a design, while keeping call-by-value.  Started, in svymean.sqlsurvey and subset.sqlsurvey
 ? lasso
 
 replicate-weight designs
