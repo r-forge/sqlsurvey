@@ -346,8 +346,12 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
    tries<-0
    maxtries<-5
    while(tries < maxtries){
-     ltail<-dbGetQuery(design$conn, sqlsubst("select sum(%%wtname%%) from %%table%% where (%%x%%<%%lower%%)", list(wtname=wtname,table=tablename,x=xname,lower=lower)))[[1]]
-     utail<-dbGetQuery(design$conn, sqlsubst("select sum(%%wtname%%) from %%table%% where (%%x%%>%%upper%%)", list(wtname=wtname,table=tablename,x=xname,upper=upper)))[[1]]
+     ltail<-dbGetQuery(design$conn,
+                       sqlsubst("select sum(%%wtname%%) from %%table%% where (%%x%%<%%lower%%)",
+                                list(wtname=wtname,table=tablename,x=xname,lower=lower)))[[1]]
+     utail<-dbGetQuery(design$conn,
+                       sqlsubst("select sum(%%wtname%%) from %%table%% where (%%x%%>%%upper%%)",
+                                list(wtname=wtname,table=tablename,x=xname,upper=upper)))[[1]]
      
      if (ltail >= quantile*totwt) {
        upper<-lower
@@ -362,8 +366,9 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
    }
    if (tries>=maxtries) stop("quantile failed")
    
-   samp<-dbGetQuery(design$conn,  sqlsubst("select %%x%% as x_, %%wtname%% as wt_ from %%table%% where ((%%x%%>=%%lower%%) and (%%x%%<=%%upper%%))",
-                                           list(x=xname, wtname=wtname, lower=lower,upper=upper,table=tablename)))
+   samp<-dbGetQuery(design$conn,
+                    sqlsubst("select %%x%% as x_, %%wtname%% as wt_ from %%table%% where ((%%x%%>=%%lower%%) and (%%x%%<=%%upper%%))",
+                             list(x=xname, wtname=wtname, lower=lower,upper=upper,table=tablename)))
    samp<-samp[order(samp$x_),]
    samp$cumwt<-cumsum(samp$wt_)
    
@@ -394,7 +399,8 @@ svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
   if(se){
     ci<-sapply(attr(tms,"term.labels"), function(varname){
       totwt<-dbGetQuery(design$conn, paste("select sum(",wtname,") from",tablename," where ",varname,"is not null"))
-      replicates<-dbGetQuery(design$conn,paste("select ",paste(paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename,"where (",varname,">",quantiles,")"))
+      replicates<-dbGetQuery(design$conn,
+                             paste("select ",paste(paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename,"where (",varname,">",quantiles,")"))
       var<-svrVar(t(as.matrix(replicates)[,-1,drop=FALSE]/as.vector(as.matrix(totwt))), scale=design$scale, rscales=design$rscales,
                   mse=design$mse, coef=as.matrix(replicates)[,1]/as.vector(as.matrix(totwt)))
       upper<-findQuantile(varname, wtname,repweights,tablename,design,0.5+1.96*sqrt(var))

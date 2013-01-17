@@ -17,6 +17,7 @@ S3method(svytable, sqlsurvey)
 S3method(svylm, sqlsurvey)
 S3method(svysmooth,sqlsurvey)
 S3method(svyplot,sqlsurvey)
+S3method(update,sqlsurvey)
 
 S3method(print, sqlrepsurvey)
 S3method(dim, sqlrepsurvey)

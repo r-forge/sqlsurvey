@@ -14,9 +14,8 @@ thinning, in which one or more iid subsamples taken from the survey sample is
 plotted. 
 }
 \usage{
-\method{svyplot}{sqlsurvey}(formula, design, style = c("hex", "subsample"), ...)
-\method{svyplot}{sqlrepsurvey}(formula, design, style = c("hex",
-"subsample"), ...)
+\method{svyplot}{sqlsurvey}(formula, design, style = c("hex", "grayhex", "subsample"), ...)
+\method{svyplot}{sqlrepsurvey}(formula, design, style = c("hex", "grayhex", "subsample"), ...)
 sqlhexbin(formula, design, xlab = NULL, ylab = NULL, ..., chunksize =
 10000)
 sqlscatter(formula, design, npoints = 1000, nplots = 4, ...) 

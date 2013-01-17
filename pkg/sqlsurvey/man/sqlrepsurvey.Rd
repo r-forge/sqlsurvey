@@ -10,7 +10,7 @@ Large survey with replicate weights, based on SQL database
 Specifies a survey design with replicate weights based on a connection to a relational database (currently MonetDB). 
 }
 \usage{
-sqlrepsurvey(weights, repweights, scale, rscales, driver, database, table.name, key = "row_names", mse = FALSE, check.factors = TRUE, ...)
+sqlrepsurvey(weights, repweights, scale, rscales, driver, database, table.name, key = "row_names", mse = FALSE, check.factors = 10, ...)
 \method{close}{sqlrepsurvey}(con, ...)
 \method{open}{sqlrepsurvey}(con, driver,...)
 }
