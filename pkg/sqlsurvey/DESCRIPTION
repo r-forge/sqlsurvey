@@ -1,7 +1,7 @@
 Package: sqlsurvey
 Title: analysis of very large complex survey samples (experimental)
 Description: Survey analysis with all data and most operations in MonetDB, which allows for very large surveys such as the American Community Survey to be analysed on typical computers.  Currently implements means, totals, quantiles,linear models, loglinear models, hexagonally binned scatterplots, thinned scatterplots, local polynomial smoothers, with replicate-weight or linearisation standard errors.
-Version: 0.6
+Version: 0.6-1
 Author: Thomas Lumley
 Maintainer: Thomas Lumley <tlumley@u.washington.edu>
 License: LGPL 

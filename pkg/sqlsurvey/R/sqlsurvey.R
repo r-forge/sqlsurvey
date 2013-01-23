@@ -206,6 +206,7 @@ sqlexpr<-function(expr, design){
    assign("!"," NOT ",nms)
    assign("I","",nms)
    assign("~","",nms)
+   assign("(","",nms)
    out <-textConnection("str","w",local=TRUE)
    inorder<-function(e){
      if(length(e) ==1) {
@@ -316,7 +317,7 @@ subset.sqlsurvey<-function(x,subset,...){
 
   allv<-all.vars(subset)
   tablename<-x$table
-  if (any(allv %in% names(x$updates[[1]]))){
+  if (any(sapply(allv, isCreatedVariable, design=x))){
     updates<-getTableWithUpdates(x,allv,c(x$weights,x$key),tablename)
     tablename<-updates$table
     alreadydefined<-dbGetQuery(x$conn, paste("select count(*) from functions where name = '",updates$fnames[1],"'",sep=""))[1,1]>0
@@ -417,7 +418,8 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   updates<-NULL
   metavars<-NULL
   allv<-unique(c(all.vars(x),all.vars(byvar)))
-  if (any(!(allv %in% names(design$zdata)))){
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
     metavars<-with(design,c(id,strata,wtname,fpc,key))
     updates<-getTableWithUpdates(design,allv,metavars,tablename)
     tablename<-updates$table
@@ -426,20 +428,20 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   }
   
   ## handle missing values
-  for(v in all.vars(x)){
+  for(v in allv){
     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null",
                                                list(wt=wtname, table=tablename, var=v)))[[1]][1]
     if (!is.na(nmissing) && nmissing>0) break
   }
   if (!is.na(nmissing) && nmissing>0){
     if (na.rm==FALSE) return(NA)
-    notna<-parse(text=paste(paste("!is.na(",all.vars(x),")"),collapse="&"))[[1]]
+    notna<-parse(text=paste(paste("!is.na(",allv,")"),collapse="&"))[[1]]
     design<-do.call(subset, list(design, notna))
     tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
                         list(tbl=design$table, subset=design$subset$table, key=design$key))
     wtname<-design$subset$weights
 
-    if (any(!(allv %in% names(design$zdata)))){
+    if (needsUpdates){
       metavars<-union(metavars,wtname)
       updates<-getTableWithUpdates(design,allv,metavars,tablename)
       tablename<-updates$table
@@ -449,12 +451,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   
   ## use sqlmodelmatrix if we have factors or interactions
   basevars<-rownames(attr(tms,"factors"))
-  inbasevars<-basevars[basevars %in% names(design$zdata)]
-  upbasevars<-basevars[basevars %in% names(design$updates[[1]])]
-  if (any(sapply(design$zdata[inbasevars], function(v) (length(levels(v))>0) || is.character(v)))
-       || any(attr(tms,"order")>1)
-       || (any(sapply(upbasevars, function(v) {design$updates[[1]][[v]]$returns == "character"})))
-      ){
+  if ( any(attr(tms,"order")>1) || any(sapply(basevars, isFactorVariable, design=design))){
     mm<-sqlmodelmatrix(x,design, fullrank=FALSE)
     termnames<-mm$terms
     tablename<-sqlsubst("%%tbl%% inner join %%mm%% using(%%key%%)",
@@ -472,9 +469,9 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
                     list(vars=tvars, table=tablename))
   }else{
     byvar<-attr(terms(byvar),"term.labels")
-    query<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% group by %%byvars%% order by %%byvars%%",
+    query<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
                     list(vars=vars, byvars=byvar, wt=wtname, table=tablename))    
-    tquery<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% group by %%byvars%% order by %%byvars%%",
+    tquery<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
                     list(vars=tvars, byvars=byvar, wt=wtname, table=tablename))    
   }
   result<-dbGetQuery(design$conn, query)
@@ -496,7 +493,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
       means<-as.vector(t(as.matrix(result[,1:p,drop=FALSE])))
       bycols<-result[,-(1:p),drop=FALSE]
       qbycols<-lapply(bycols, function(v) if(is.character(v)) lapply(v,adquote) else v)
-      bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" & "))
+      bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" AND "))
       vnames<-paste("(",termnames,"-",means,")",sep="")
       uexpr<-paste(vnames,"*(1*(",rep(bynames,each=p),"))")
       unames<-paste("_",as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep="")
@@ -515,12 +512,27 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
       on.exit(dbSendUpdate(design$conn, sqlsubst("drop table %%utbl%%",list(utbl=utable))),add=TRUE)
     vmat<-sqlvar(unames,utable,design)
     ##FIXME
-    attr(result,"var")<-vmat/tcrossprod(as.vector(as.matrix(totwt)))
+    attr(result,"var")<-vmat/tcrossprod(as.vector(t(as.matrix(totwt))))
+
   }
   
- 
+  attr(result,"resultcol")<-1:length(termnames)
+  class(result)<-c("sqlsvystat",class(result))
   result
   
+}
+
+coef.sqlsvystat<-function(object,...) as.vector(as.matrix(object[,attr(object,"resultcol"),drop=FALSE]))
+vcov.sqlsvystat<-function(object,...) attr(object,"var")
+
+print.sqlsvystat<-function(x,...){
+  se<-SE(x)
+  if (length(se))
+    mat<-cbind(coef(x),SE=SE(x))
+  else
+    mat<-data.frame(coef(x))
+  print(mat)
+  invisible(x)
 }
 
 svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estfun=FALSE,...){
@@ -574,7 +586,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
     } else {
       bycols<-result[,-(1:p),drop=FALSE]
       qbycols<-lapply(bycols, function(v) if(is.character(v)) lapply(v,adquote) else v)
-      bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" & "))
+      bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" AND "))
       uexpr<-as.vector(outer(termnames, bynames, function(i,j) paste(i,"*(1*(",j,"))",sep="")))
       unames<-paste("_",as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep="")
       query<-sqlsubst("create table %%utbl%% as (select %%key%%, %%vars%% from %%table%%)  with data",
@@ -594,6 +606,8 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
     
   }
   
+  attr(result,"resultcol")<-1:length(termnames)
+  class(result)<-c("sqlsvystat",class(result))
   result
   
 }
@@ -754,11 +768,16 @@ svylm.sqlsurvey<-function(formula, design,na.rm=TRUE,...){
 
    Uvar<-sqlvar(unames,Utable, design)
    xwxinv<-solve(xwx)
-   v<-xwxinv%*%Uvar%*%xwxinv
-   names(beta)<-termnames
-   dimnames(v)<-list(termnames, termnames)
-   attr(beta, "var")<-v
-   beta
+  v<-xwxinv%*%Uvar%*%xwxinv
+  names(beta)<-termnames
+  results<-data.frame(beta=beta)
+  
+  dimnames(v)<-list(termnames, termnames)
+  attr(results, "var")<-v
+  
+  attr(results,"resultcol")<-1:length(termnames)
+  class(results)<-c("sqlsvystat",class(results))
+   results
 }
 
 dim.sqlmm<-function(x){
@@ -882,17 +901,18 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
       paste(rval,"as",make.db.names(design$conn, termname))
   }
   
-  if (!all(all.vars(formula) %in% names(design$zdata)))
+  if (!all(sapply(all.vars(formula), isKnownVariable, design=design)))
     stop("some variables not in database")
   ok.names<-c("~","I","(","-","+","*")
-  if (!all( all.names(formula) %in% c(ok.names, names(design$zdata))))
-    stop("unsupported transformations in formula")
+  if (!all( all.names(formula) %in% c(ok.names, all.vars(formula))))
+    stop("Unsupported transformations in formula")
 
 
 
   mftable<-basename(tempfile("_mf_"))
   mmtable<-basename(tempfile("_mm_"))
 
+  ##FIXME needs to use getTableWithUpdates
   dbSendUpdate(design$conn, sqlsubst("create table %%mf%% as (select %%key%%, %%vars%% from %%table%%) with data",
                                list(mf=mftable, vars=all.vars(formula), table=design$table,
                                     id=design$id, strata=design$strata,key=design$key)))
@@ -901,7 +921,7 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
                                         key=design$key)))
   
   tms<-terms(formula)
-  mf<-model.frame(formula,design$zdata,na.action=na.pass)
+  mf<-zero.model.frame(formula,design)
  
   ## character variables get temporary factorness
   for(v in all.vars(formula)){
@@ -1105,10 +1125,10 @@ dim.sqlsurvey<-function(x){
   else
     nrows<-dbGetQuery(x$conn, sqlsubst("select count(*) from %%subtable%%",
                                        list(subtable=x$subset$table)))[[1]]
-  ncols<-ncol(x$zdata)
+  ncols<-length(allVarNames(x))
   c(nrows,ncols)
 }
 
-dimnames.sqlsurvey<-function(x,...) dimnames(x$zdata)
+dimnames.sqlsurvey<-function(x,...) list(character(0),allVarNames(x))
 
 

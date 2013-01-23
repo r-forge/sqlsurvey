@@ -1,3 +1,7 @@
+0.6-1 fix handling of ( in sqlexpr
+
+      fix handling of byvars with missing values in svymean.sqlsurvey
+
 0.6  initial experiement with update() function.
 
      change DESCRIPTION to pretend that RMonetDB isn't a dependency,

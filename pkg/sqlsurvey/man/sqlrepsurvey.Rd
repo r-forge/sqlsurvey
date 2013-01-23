@@ -20,7 +20,7 @@ sqlrepsurvey(weights, repweights, scale, rscales, driver, database, table.name, 
 Character string naming the weight variable
 }
   \item{repweights}{
-Vector of character strings naming the replicate-weight variables
+Vector of character strings naming the replicate-weight variables, or a regular expression that selects the correct variable names from those in the table.
 }
   \item{scale}{
 A single number for scaling the sum of squared deviations of the
@@ -105,6 +105,13 @@ svymean(~wagp, subset(alabama, !is.na(wagp)), byvar=~sex,se=TRUE)
 svyquantile(~agep, alabama,quantiles=0.5,se=TRUE)
 
 plot(svysmooth(wagp~wkhp,alabama,sample.bandwidth=5000))
+
+
+## with regular expression
+alabama<-sqlrepsurvey("pwgtp",repweights="pwgtp[1-9]",key="idkey",scale=4/80,rscales=rep(1,80),
+mse=TRUE,database="jdbc:monetdb://localhost/ACS",
+driver=monetdriver,user="monetdb",password="monetdb",table.name="alabama3yr",check.factors=TRUE)
+
 }
 
 }

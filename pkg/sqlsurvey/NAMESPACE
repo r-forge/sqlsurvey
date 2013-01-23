@@ -19,6 +19,10 @@ S3method(svysmooth,sqlsurvey)
 S3method(svyplot,sqlsurvey)
 S3method(update,sqlsurvey)
 
+S3method(coef,sqlsvystat)
+S3method(vcov,sqlsvystat)
+S3method(print,sqlsvystat)
+
 S3method(print, sqlrepsurvey)
 S3method(dim, sqlrepsurvey)
 S3method(dimnames, sqlrepsurvey)
@@ -34,5 +38,6 @@ S3method(svyloglin,sqlrepsurvey)
 S3method(svysmooth,sqlrepsurvey)
 S3method(svyplot,sqlrepsurvey)
 S3method(svytable,sqlrepsurvey)
+S3method(update,sqlrepsurvey)
 
 

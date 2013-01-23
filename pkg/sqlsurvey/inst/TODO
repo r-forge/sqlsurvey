@@ -1,6 +1,8 @@
 Overall
-- adding variables to a design, while keeping call-by-value.  Started, in svymean.sqlsurvey and subset.sqlsurvey
+- adding variables to a design, while keeping call-by-value.  Started, in svymean.sqlsurvey, sqlmodelmatrix, subset.sqlsurvey
 ? lasso
+- booleans aren't handled right by RMonetDB: converted to character on the way in, but not converted back on the way out. MonetR may fix this.
+
 
 replicate-weight designs
 - generalised linear models
