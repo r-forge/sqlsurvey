@@ -1,3 +1,5 @@
+0.6-2 update() now works on replicate-weight designs, with svymean() and subset()
+
 0.6-1 fix handling of ( in sqlexpr
 
       fix handling of byvars with missing values in svymean.sqlsurvey

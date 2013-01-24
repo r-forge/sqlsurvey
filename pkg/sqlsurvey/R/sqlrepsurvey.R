@@ -11,11 +11,11 @@ dim.sqlrepsurvey<-function(x){
   else
     nrows<-dbGetQuery(x$conn, sqlsubst("select count(*) from %%subtable%%",
                                        list(subtable=x$subset$table)))[[1]]
-  ncols<-ncol(x$zdata)
+  ncols<-length(allVarNames(x))
   c(nrows,ncols)
 }
 
-dimnames.sqlrepsurvey<-function(x,...) dimnames(x$zdata)
+dimnames.sqlrepsurvey<-function(x,...) list(character(0), allVarNames(x))
 
 subset.sqlrepsurvey<-function(x,subset,...){
 
@@ -25,10 +25,25 @@ subset.sqlrepsurvey<-function(x,subset,...){
 
   rval$table<-basename(tempfile("_sbs_"))
   rval$idx<-basename(tempfile("_idx_"))
+
+
+  allv<-all.vars(subset)
+  tablename<-x$table
+  if (any(sapply(allv, isCreatedVariable, design=x))){
+    updates<-getTableWithUpdates(x,allv,c(x$weights,x$key),tablename)
+    tablename<-updates$table
+    alreadydefined<-dbGetQuery(x$conn, paste("select count(*) from functions where name = '",updates$fnames[1],"'",sep=""))[1,1]>0
+    if(!alreadydefined){
+      on.exit(for (d in updates$destroyfns) dbSendUpdate(x$conn,d), add=TRUE)
+      for(f in updates$createfns) dbSendUpdate(x$conn,f)
+    }
+  } 
+  
+  
   rval$weights<-x$weights
   rval$repweights<-x$repweights
   query<-sqlsubst("create table %%tbl%% as (select %%key%% from %%base%% where %%subset%%) with data",
-                  list(tbl=rval$table, key=x$key,subset=rval$subset, base=x$table )
+                  list(tbl=rval$table, key=x$key,subset=rval$subset, base=tablename )
                   )
   dbSendUpdate(x$conn, query)
   dbSendUpdate(x$conn,sqlsubst("create unique index %%idx%% on %%tbl%%(%%key%%)",
@@ -117,13 +132,20 @@ svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
   	v<-termnames[i]
         e<-rvars[[i]]
     if (is.factor(eval(e,mf)) | is.character(eval(e,mf))){
-      query<-paste("select ",paste(c(paste("sum(",c(wtname,repweights),")"),v,byvar),collapse=","),"from",tablename,"group by",paste(c(v,byvar),collapse=","),"order by", paste(c(byvar,v),collapse=","))
+      query<-paste("select ",paste(c(paste("sum(",c(wtname,repweights),")"),v,byvar),collapse=","),
+                   "from",tablename,
+                   "group by",paste(c(v,byvar),collapse=","),
+                   "order by", paste(c(byvar,v),collapse=","))
       dbGetQuery(design$conn,query)
     } else {
       if(is.null(byvar)) {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v)),collapse=","),"from",tablename)
+        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v)),collapse=","),
+                     "from",tablename)
       } else {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),"from",tablename,"group by",paste(byvar,collapse=","),"order by", paste(byvar,collapse=","))
+        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),
+                     "from",tablename,
+                     "group by",paste(byvar,collapse=","),
+                     "order by", paste(byvar,collapse=","))
       }
       dbGetQuery(design$conn,query)
     }
@@ -157,7 +179,22 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
     repweights<-design$subset$repweights
   }
   M<-length(repweights)
-  mf<-design$zdata
+  
+  updates<-NULL
+  metavars<-NULL
+  allv<-unique(c(all.vars(x),all.vars(byvar)))
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(wtname,repweights,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+
+  
+  mf<- zero.model.frame(x,design)
+
   
   if (!is.null(byvar)) byvar<-attr(terms(byvar),"term.labels")
 

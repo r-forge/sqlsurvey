@@ -53,7 +53,7 @@ makeUpdateVar<-function(design, varname, expr,max.levels){
    fname<-basename(tempfile(varname))
    inputs<-all.vars(expr)
 
-   if(any(sapply(inputs, isCreatedVar,design=design))) stop("can't (yet) use created variables as inputs")
+   if(any(sapply(inputs, isCreatedVariable,design=design))) stop("can't (yet) use created variables as inputs")
    
    inputtypes<-sapply(inputs, sqltype, design=design)
 
@@ -154,14 +154,14 @@ zero.model.frame<-function(formula,design){
   ## assumes all variables are actually available: caller must check
   allv<-all.vars(formula)
   if (all(base<-sapply(allv,isBaseVariable,design=design)))
-    return(model.frame(formula,design$zdata,na.action=na.pass))
+    return(model.frame(make.formula(allv),design$zdata,na.action=na.pass))
 
   zf<-design$zdata
   needed<-allv[!base]
   for(v in needed)
     zf<-cbind(zf,getZData(v,design))
   
-  model.frame(formula,zf,na.action=na.pass)
+  model.frame(make.formula(allv),zf,na.action=na.pass)
   
 }
 
