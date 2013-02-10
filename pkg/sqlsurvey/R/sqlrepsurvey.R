@@ -111,8 +111,21 @@ svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
 
   if(!se) repweights<-NULL
   
-  mf<-design$zdata
+
+  updates<-NULL
+  metavars<-NULL
+  allv<-unique(c(all.vars(x),all.vars(byvar)))
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(wtname,repweights,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+
   
+  mf<- zero.model.frame(x,design)  
   if (!is.null(byvar)) byvar<-attr(terms(byvar),"term.labels")
 
   xcut<-cutprocess(x)
@@ -214,7 +227,7 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
   if (is.null(byvar))
     qtotalwt<-paste("select",paste( paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename)
   else
-    qtotalwt<-paste("select",paste( paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename, "group by", paste(byvar,collapse=","))
+    qtotalwt<-paste("select",paste( paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename, "group by", paste(byvar,collapse=","),"order by", paste(byvar,collapse=","))
     
   totalwt<-dbGetQuery(design$conn,qtotalwt)
   results<-lapply(seq_along(termnames), function(i){
@@ -390,10 +403,10 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
                        sqlsubst("select sum(%%wtname%%) from %%table%% where (%%x%%>%%upper%%)",
                                 list(wtname=wtname,table=tablename,x=xname,upper=upper)))[[1]]
      
-     if (ltail >= quantile*totwt) {
+     if (!is.na(ltail) && ltail >= quantile*totwt) {
        upper<-lower
        lower<-lower-4*SE(guess)
-     } else if (utail >= (1-quantile)*totwt){
+     } else if (!is.na(utail) && utail >= (1-quantile)*totwt){
        lower<-upper
        upper<-upper+4*SE(guess)
      } else break
@@ -440,8 +453,8 @@ svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
                              paste("select ",paste(paste("sum(",c(wtname,repweights),")"),collapse=","),"from",tablename,"where (",varname,">",quantiles,")"))
       var<-svrVar(t(as.matrix(replicates)[,-1,drop=FALSE]/as.vector(as.matrix(totwt))), scale=design$scale, rscales=design$rscales,
                   mse=design$mse, coef=as.matrix(replicates)[,1]/as.vector(as.matrix(totwt)))
-      upper<-findQuantile(varname, wtname,repweights,tablename,design,0.5+1.96*sqrt(var))
-      lower<-findQuantile(varname, wtname,repweights,tablename,design,0.5-1.96*sqrt(var))
+      upper<-findQuantile(varname, wtname,repweights,tablename,design,quantiles+1.96*sqrt(var))
+      lower<-findQuantile(varname, wtname,repweights,tablename,design,quantiles-1.96*sqrt(var))
       c(lower=lower,upper=upper,se=(upper-lower)/(2*1.96))
     })
     attr(rval,"ci")<-ci
@@ -475,6 +488,19 @@ svyloglin.sqlrepsurvey<-function (formula, design, ...)
     p<-length(vars)
     
 
+    updates<-NULL
+    metavars<-NULL
+    allv<-all.vars(formula)
+    needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+    if (needsUpdates){
+      metavars<-with(design,c(wtname,repweights,key))
+      updates<-getTableWithUpdates(design,allv,metavars,tablename)
+      tablename<-updates$table
+      on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+      for(f in updates$createfns) dbSendUpdate(design$conn,f)
+    }
+
+ 
     qweights<-paste( paste("sum(",c(wtname,repweights),")"),collapse=",")
     qvars<-paste(vars,collapse=",")
 	  totals<-dbGetQuery(design$conn, paste("select",qvars,",",qweights,"from",tablename,"group by",qvars,"order by", qvars))
@@ -530,6 +556,21 @@ svytable.sqlrepsurvey<-function(formula, design,...){
                              key=design$key, wt=design$subset$weights))
 
 
+  updates<-NULL
+  metavars<-NULL
+  allv<-all.vars(formula)
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(design$weights,repweights,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+
+  
+
+  
   query<-sqlsubst("select sum(%%wt%%),%%tms%%  from %%table%% group by %%tms%% order by %%tms%%",
                   list(wt=design$weights,
                        table=tablename,

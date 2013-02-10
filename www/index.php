@@ -33,7 +33,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- get project title  -->
 <!-- own website starts here, the following may be changed as you like -->
 
-  <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
+ <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
 	$contents .= fread($handle, 8192);
@@ -47,6 +47,8 @@ echo $contents; } ?>
 
    <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a> (and its <a href="http://dev.monetdb.org/downloads/Java/Latest/">Java support files</a>, which may need to be downloaded separately), so installation is more complicated than just installing an R package. You also need to have Java installed on your computer.
  Under Windows it is important to use a 64-bit version of MonetDB to allow creation of large databases. </p>
+
+<p>R to MonetDB packages are proliferating: you can also use <a href="https://r-forge.r-project.org/R/?group_id=1534">MonetDB.R</a>, which is written in R using the MonetDB "MAPI" interface, or a C-based version <a href="https://github.com/piersharding/RMonet">RMonet</a>. Neither of these requires Java.  Also, I believe RJDBC now works with MonetDB. At some point RMonetDB will go away and I will switch to MonetDB.R</p>
 
 Examples (small enough to play with):
 <ul>

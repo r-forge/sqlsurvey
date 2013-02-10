@@ -145,7 +145,20 @@ svysmooth.sqlrepsurvey<-svysmooth.sqlsurvey<-function(formula, design, bandwidth
                           list(tbl=design$table, subset=design$subset$table, key=design$key))
       wtname<-design$subset$weights
     }
+
     
+  updates<-NULL
+  metavars<-NULL
+  allv<-all.vars(formula)
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(wtname,repweights,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+
     
     if (!is.numeric(sample.bandwidth) || (sample.bandwidth<100) || (sample.bandwidth>1e5))
       stop("invalid sample.bandwidth")
@@ -522,7 +535,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   
 }
 
-coef.sqlsvystat<-function(object,...) as.vector(as.matrix(object[,attr(object,"resultcol"),drop=FALSE]))
+coef.sqlsvystat<-function(object,...) as.vector(t(as.matrix(object[,attr(object,"resultcol"),drop=FALSE])))
 vcov.sqlsvystat<-function(object,...) attr(object,"var")
 
 print.sqlsvystat<-function(x,...){

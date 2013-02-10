@@ -7,7 +7,7 @@ Add variables to survey objects
 }
 \description{
 UNDER DEVELOPMENT.  Adds variables to a \code{sqlsurvey} object.  These
-are used only by the \code{svymean} and \code{subset} methods at the moment.  Works by defining a
+are used  by the \code{svymean} and \code{subset} methods of \code{sqlsurvey} and most methods for \code{sqlrepsurvey} objects other than \code{svylm} at the moment.  Works by defining a
 MonetDB function to evaluate the new variable as needed.  At the moment, variables created in one \code{update} call cannot be used in another \code{update} call. This should change eventually.
 }
 \usage{
