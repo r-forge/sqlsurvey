@@ -33,7 +33,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 <!-- get project title  -->
 <!-- own website starts here, the following may be changed as you like -->
 
- <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
+  <?php if ($handle=fopen('http://'.$domain.'/export/projtitl.php?group_name='.$group_name,'r')){
 $contents = '';
 while (!feof($handle)) {
 	$contents .= fread($handle, 8192);
@@ -43,12 +43,11 @@ echo $contents; } ?>
 
 <!-- end of project description -->
 
-  <p> This project has <a href="http://r-forge.r-project.org/R/?group_id=1484">two packages</a>: sqlsurvey, for analysis of large surveys, and RMonetDB, used by sqlsurvey to communicate with the MonetDB database. RMonetDB is a slight modification of Simon Urbanek's RJDBC to handle some idiosyncracies in MonetDB </p>
+  <p> This project used to have two packages. It now just has  <a href="http://r-forge.r-project.org/R/?group_id=1484">one</a>: sqlsurvey, for analysis of large surveys. You also need <a href="https://r-forge.r-project.org/R/?group_id=1534">MonetDB.R</a>, which replaces my JDBC-based interface. There are other MonetDB to R interfaces, but they won't work with the sqlsurvey package, because we've had to extend the R-DBI interface to handle concurrency problems from garbage collection. 
 
-   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a> (and its <a href="http://dev.monetdb.org/downloads/Java/Latest/">Java support files</a>, which may need to be downloaded separately), so installation is more complicated than just installing an R package. You also need to have Java installed on your computer.
+   <p> Both packages require <a href="http://www.monetdb.org/Downloads?x=144&y=18">MonetDB</a>, so installation is more complicated than just installing an R package. 
  Under Windows it is important to use a 64-bit version of MonetDB to allow creation of large databases. </p>
 
-<p>R to MonetDB packages are proliferating: you can also use <a href="https://r-forge.r-project.org/R/?group_id=1534">MonetDB.R</a>, which is written in R using the MonetDB "MAPI" interface, or a C-based version <a href="https://github.com/piersharding/RMonet">RMonet</a>. Neither of these requires Java.  Also, I believe RJDBC now works with MonetDB. At some point RMonetDB will go away and I will switch to MonetDB.R</p>
 
 Examples (small enough to play with):
 <ul>
@@ -85,7 +84,7 @@ Examples (small enough to play with):
 <p>
 None of the analyses will modify any existing database table, and the R survey design objects behave as if they are passed by value, like ordinary R objects. Temporary tables are automatically dropped when the R objects referring to them are garbage-collected. The basic design ideas for the package were described in a<a href="http://www.r-project.org/conferences/useR-2007/program/presentations/lumley.pdf">presentation</a> at UseR 2007, but were not developed further because of lack of demand.  The American Community Survey and some medical-record surveys such as the Nationwide Inpatient Sample do represent a real need, so the project has been restarted.  MonetDB turns out to be much faster than SQLite for this sort of analysis, and interactive analysis of millions of records on an ordinary desktop is quite feasible. </p>
 
-<p> The <strong>project summary page</strong> you can find <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
+<p> The <strong>project summary page</strong> is <a href="http://<?php echo $domain; ?>/projects/<?php echo $group_name; ?>/"><strong>here</strong></a>. </p>
 
 </body>
 </html>
