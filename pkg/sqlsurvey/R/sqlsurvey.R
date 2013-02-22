@@ -59,10 +59,17 @@ open.sqlmodelmatrix<-function(con, design,...){
   con
 }
 
-finalizeSubset<-function(e){
-  dbSendUpdate(e$conn, sqlsubst("drop index %%idx%%",list(idx=e$idx)))
-  dbSendUpdate(e$conn, sqlsubst("drop table %%tbl%%",list(tbl=e$table)))  
+sqlmmDrop<-function(mmobj){
+  dbSendUpdate(mmobj$conn,sqlsubst("drop table %%mm%%", list(mm=mmobj$table)),async=TRUE)
+  dbSendUpdate(mmobj$conn,sqlsubst("drop table %%mf%%", list(mf=mmobj$mf)),async=TRUE)
+  invisible(NULL)
 }
+
+finalizeSubset<-function(e){
+  dbSendUpdate(e$conn, sqlsubst("drop index %%idx%%",list(idx=e$idx)),async=TRUE)
+  dbSendUpdate(e$conn, sqlsubst("drop table %%tbl%%",list(tbl=e$table)),async=TRUE)
+}
+
 
 
 linbin2<-function(x,table,design,M=101,lim=NULL,y=NULL){
@@ -1000,11 +1007,6 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   rval
 }
 
-sqlmmDrop<-function(mmobj){
-  dbSendUpdate(mmobj$conn,sqlsubst("drop table %%mm%%", list(mm=mmobj$table))) 
-  dbSendUpdate(mmobj$conn,sqlsubst("drop table %%mf%%", list(mf=mmobj$mf)))
-  invisible(NULL)
-}
 
 head.sqlmm<-function(x,n=6,...) dbGetQuery(x$conn,
      sqlsubst("select * from %%mm%% limit %%nn%%", list(mm=x$table,nn=n)))

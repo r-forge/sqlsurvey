@@ -9,6 +9,7 @@
 
       add print method for sqlsurvey results
 
+      switch completely to MonetDB.R, now on CRAN and listed as a dependency
 
 0.6-2 update() now works on replicate-weight designs, with svymean() and subset()
 
