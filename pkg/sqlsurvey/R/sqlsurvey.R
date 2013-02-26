@@ -557,10 +557,10 @@ print.sqlsvystat<-function(x,...){
 
 svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estfun=FALSE,...){
 
-  design<-dropmissing(x,design,na.rm)
-  
   tms<-terms(x)
-  ## handle subpopulations
+
+  
+##handle subpopulations
   if (is.null(design$subset)){
     tablename<-design$table
     wtname<-design$weights
@@ -569,11 +569,43 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
                         list(tbl=design$table, subset=design$subset$table, key=design$key))
     wtname<-design$subset$weights
   }
+
+  updates<-NULL
+  metavars<-NULL
+  allv<-unique(c(all.vars(x),all.vars(byvar)))
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(id,strata,wtname,fpc,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+  
+  ## handle missing values
+  for(v in allv){
+    nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null",
+                                               list(wt=wtname, table=tablename, var=v)))[[1]][1]
+    if (!is.na(nmissing) && nmissing>0) break
+  }
+  if (!is.na(nmissing) && nmissing>0){
+    if (na.rm==FALSE) return(NA)
+    notna<-parse(text=paste(paste("!is.na(",allv,")"),collapse="&"))[[1]]
+    design<-do.call(subset, list(design, notna))
+    tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
+                        list(tbl=design$table, subset=design$subset$table, key=design$key))
+    wtname<-design$subset$weights
+
+    if (needsUpdates){
+      metavars<-union(metavars,wtname)
+      updates<-getTableWithUpdates(design,allv,metavars,tablename)
+      tablename<-updates$table
+    }
+  }
   
   ## use modelmatrix if we have factors or interactions
   basevars<-rownames(attr(tms,"factors"))
-  if (any(sapply(design$zdata[basevars], function(v) (length(levels(v))>0)|| is.character(v)))
-      || any(attr(tms,"order")>1)){
+  if ( any(attr(tms,"order")>1) || any(sapply(basevars, isFactorVariable, design=design))){
     mm<-sqlmodelmatrix(x,design, fullrank=FALSE)
     termnames<-mm$terms
     tablename<-sqlsubst("%%tbl%% inner join %%mm%% using(%%key%%)",
@@ -583,12 +615,13 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
   }
 
   vars<-paste("sum(",wtname,"*(1*",termnames,"))",sep="")
+  
   if (is.null(byvar)){
     query<-sqlsubst("select %%vars%% from %%table%%",
                     list(vars=vars, wt=wtname,table=tablename))
   }else{
     byvar<-attr(terms(byvar),"term.labels")
-    query<-sqlsubst("select %%vars%%, %%byvars%%  from %%table%% group by %%byvars%% order by %%byvars%%",
+    query<-sqlsubst("select %%vars%%, %%byvars%%  from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
                     list(vars=vars, byvars=byvar, wt=wtname, table=tablename))    
   }
   result<-dbGetQuery(design$conn, query)
@@ -620,7 +653,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
                     list(utbl=utable, key=design$key, idx=basename(tempfile("idx"))))
     dbSendUpdate(design$conn, query)
     if (!keep.estfun)
-      on.exit(dbSendUpdate(design$conn, sqlsubst("drop table %%utbl%%",list(utbl=utable))))
+      on.exit(dbSendUpdate(design$conn, sqlsubst("drop table %%utbl%%",list(utbl=utable))),add=TRUE)
     vmat<-sqlvar(unames,utable,design)
     attr(result,"var")<-vmat
     
@@ -927,6 +960,15 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   if (!all( all.names(formula) %in% c(ok.names, all.vars(formula))))
     stop("Unsupported transformations in formula")
 
+  tablename<-design$table
+  
+  needsUpdates <- any(!sapply(all.vars(formula), isBaseVariable, design = design))
+    if (needsUpdates) {
+        metavars <- with(design, c(id, strata, key))
+        updates <- getTableWithUpdates(design, all.vars(formula), metavars, 
+            tablename)
+        tablename <- updates$table
+    } 
 
 
   mftable<-basename(tempfile("_mf_"))
@@ -934,7 +976,7 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
 
   ##FIXME needs to use getTableWithUpdates
   dbSendUpdate(design$conn, sqlsubst("create table %%mf%% as (select %%key%%, %%vars%% from %%table%%) with data",
-                               list(mf=mftable, vars=all.vars(formula), table=design$table,
+                               list(mf=mftable, vars=all.vars(formula), table=tablename,
                                     id=design$id, strata=design$strata,key=design$key)))
   dbSendUpdate(design$conn, sqlsubst("create unique index %%idx%% on %%tbl%%(%%key%%)",
                                    list(idx=basename(tempfile("idx")), tbl=mftable,
@@ -1049,52 +1091,60 @@ hexbinmerge<-function(h1,h2){
 	}
 
 sqlhexbin<-function(formula, design, xlab=NULL,ylab=NULL, ...,chunksize=10000){
-	require("hexbin")
-	tms<-terms(formula)
-	x<-attr(tms,"term.labels")
-	if (length(x)>2) stop("only one x variable")
-	y<-deparse(formula[[2]])
-	if (is.null(design$subset)){
-   		tablename<-design$table
-    	wtname<-design$weights
-  	} else {
-    	tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
+  require("hexbin")
+  tms<-terms(formula)
+  x<-attr(tms,"term.labels")
+  if (length(x)>2) stop("only one x variable")
+  y<-deparse(formula[[2]])
+  if (is.null(design$subset)){
+    tablename<-design$table
+    wtname<-design$weights
+  } else {
+    tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
                         list(tbl=design$table, subset=design$subset$table, key=design$key))
-    	wtname<-design$subset$weights
-  	}
-
-	query<-sqlsubst("select min(%%x%%) as xmin, max(%%x%%) as xmax, min(%%y%%) as ymin, max(%%y%%) as ymax from %%tbl%% where %%wt%%>0",
-                        list(x=x,tbl=tablename,y=y, wt=wtname))
-	ranges<-dbGetQuery(design$conn, query)
-	xlim<-with(ranges,c(xmin,xmax))
-	ylim<-with(ranges,c(ymin,ymax))
-	N<-dbGetQuery(design$conn, sqlsubst("select count(*) from %%tbl%% where %%wt%%>0",
-	   list(tbl=tablename,wt=wtname)))[[1]]
-	
-	query<-sqlsubst("select %%x%% as x, %%y%% as y, %%wt%% as _wt from %%tbl%% where %%wt%% > 0",
-		list(x=x,y=y,tbl=tablename,wt=wtname))
-	result<-dbSendQuery(design$conn, query)
-	on.exit(dbClearResult(result))
-
-    got<-0
-    htotal<-NULL
-    while(got<N){
-    	df<-fetch(result, chunksize)
-    	if (nrow(df)==0) break
-    	h<-hexbin(df$x,df$y,IDs=TRUE,xbnds=xlim,ybnds=ylim)
-    	h@count<-as.vector(tapply(df[["_wt"]],h@cID,sum))
-    	if (is.null(htotal)){
-    		htotal<-h
-    	} else 
-    		htotal<-hexbinmerge(htotal,h) 
-    	
-    }
-    if (is.null(xlab)) xlab<-x
-    if (is.null(ylab)) ylab<-y
+    wtname<-design$subset$weights
+  }
+  needsUpdates <- any(!sapply(all.vars(formula), isBaseVariable, design = design))
+  if (needsUpdates) {
+    metavars <- with(design, c(id, wtname, key))
+    updates <- getTableWithUpdates(design, all.vars(formula),  metavars, tablename)
+    tablename <- updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,  d), add = TRUE)
+    for (f in updates$createfns) dbSendUpdate(design$conn,  f) 
+  }
+  
+  query<-sqlsubst("select min(%%x%%) as xmin, max(%%x%%) as xmax, min(%%y%%) as ymin, max(%%y%%) as ymax from %%tbl%% where %%wt%%>0",
+                  list(x=x,tbl=tablename,y=y, wt=wtname))
+  ranges<-dbGetQuery(design$conn, query)
+  xlim<-with(ranges,c(xmin,xmax))
+  ylim<-with(ranges,c(ymin,ymax))
+  N<-dbGetQuery(design$conn, sqlsubst("select count(*) from %%tbl%% where %%wt%%>0",
+                                      list(tbl=tablename,wt=wtname)))[[1]]
+  
+  query<-sqlsubst("select %%x%% as x, %%y%% as y, %%wt%% as _wt from %%tbl%% where %%wt%% > 0",
+                  list(x=x,y=y,tbl=tablename,wt=wtname))
+  result<-dbSendQuery(design$conn, query)
+  on.exit(dbClearResult(result), add=TRUE)
+  
+  got<-0
+  htotal<-NULL
+  while(got<N){
+    df<-fetch(result, chunksize)
+    if (nrow(df)==0) break
+    h<-hexbin(df$x,df$y,IDs=TRUE,xbnds=xlim,ybnds=ylim)
+    h@count<-as.vector(tapply(df[["_wt"]],h@cID,sum))
+    if (is.null(htotal)){
+      htotal<-h
+    } else 
+    htotal<-hexbinmerge(htotal,h) 
     
-    gplot.hexbin(htotal,xlab=xlab, ylab=ylab, ...)
-    invisible(htotal)
-	}
+  }
+  if (is.null(xlab)) xlab<-x
+  if (is.null(ylab)) ylab<-y
+  
+  gplot.hexbin(htotal,xlab=xlab, ylab=ylab, ...)
+  invisible(htotal)
+}
 
 
 svyplot.sqlsurvey<-svyplot.sqlrepsurvey<-function (formula, design, style = c("hex", "grayhex","subsample"), ...) 
@@ -1116,7 +1166,16 @@ sqlscatter<-function(formula,design,npoints=1000,nplots=4,...){
                         list(tbl=design$table, subset=design$subset$table, key=design$key))
     wtname<-design$subset$weights
   }
-  
+
+  needsUpdates <- any(!sapply(all.vars(formula), isBaseVariable, design = design))
+  if (needsUpdates) {
+    metavars <- with(design, c(id, wtname, key))
+    updates <- getTableWithUpdates(design, all.vars(formula),  metavars, tablename)
+    tablename <- updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,  d), add = TRUE)
+    for (f in updates$createfns) dbSendUpdate(design$conn,  f) 
+  }
+
   n<-round(10*sqrt(nrow(design)))
   
   vars<-union(all.vars(formula),all.vars(substitute(list(...))))
