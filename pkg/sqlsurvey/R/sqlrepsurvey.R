@@ -358,6 +358,7 @@ svylm.sqlrepsurvey<-function(formula, design,...){
   dimnames(v)<-list(termnames, termnames)
   class(beta)<-"svrepstat"
   attr(beta, "var")<-v
+  attr(beta,"statistic")<-"coef"
   beta
 }
 
@@ -380,7 +381,6 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
    N<-dim(design)[1]
    n<-round(sqrt(N))*10
 
-   if (!is.numeric(design$zdata[[xname]])) return(NaN)
 
    samp <- dbGetQuery(design$conn, paste("select ",xname," as x_,",wtname, "as wt_,",paste(repweights,collapse=",")," from ",tablename, "sample",n))
    tempdes<-svrepdesign(data=samp, weights=~wt_,  repweights=samp[,-(1:2)],scale=design$scale,rscales=design$rscales,mse=design$mse,type="other")
@@ -440,10 +440,26 @@ svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
     wtname<-design$subset$weights
     repweights<-design$subset$repweights
   }
+
+  
+  updates<-NULL
+  metavars<-NULL
+  allv<-all.vars(x)
+  needsUpdates<-any(!sapply(allv,isBaseVariable,design=design))
+  if (needsUpdates){
+    metavars<-with(design,c(wtname,repweights,key))
+    updates<-getTableWithUpdates(design,allv,metavars,tablename)
+    tablename<-updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d),add=TRUE)
+    for(f in updates$createfns) dbSendUpdate(design$conn,f)
+  }
+
+  mf<- zero.model.frame(x,design)
   
   if(length(quantiles)>1) stop("only one quantile")
   tms<-terms(x)
-  rval<-sapply(attr(tms,"term.labels"), function(v) findQuantile(v,wtname,repweights,tablename,design,quantiles))
+  rval<-sapply(attr(tms,"term.labels"),
+               function(v) if (is.numeric(mf[[v]])) findQuantile(v,wtname,repweights,tablename,design,quantiles) else NaN)
   names(rval)<-attr(tms,"term.labels")
   
   if(se){

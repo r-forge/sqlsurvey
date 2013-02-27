@@ -738,7 +738,7 @@ svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,...){
 }
 
 dropmissing<-function(expr,design,na.rm){
-   if (is.null(design$subset)){
+  if (is.null(design$subset)){
     tablename<-design$table
     wtname<-design$weights
   } else {
@@ -747,21 +747,35 @@ dropmissing<-function(expr,design,na.rm){
     wtname<-design$subset$weights
   }
 
-   for(v in all.vars(expr)){
-     nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", 
-                                                list(wt=wtname, table=tablename, var=v)))[[1]][1]
-     if (!is.na(nmissing) && nmissing>0) break
+  updates <- NULL
+  metavars <- NULL
+  allv <- all.vars(expr)
+  needsUpdates <- any(!sapply(allv, isBaseVariable, design = design))
+  if (needsUpdates) {
+    metavars <- with(design, c(id, strata, wtname, fpc, key))
+    updates <- getTableWithUpdates(design, allv, metavars, 
+                                   tablename)
+    tablename <- updates$table
+    on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d), add = TRUE)
+    for (f in updates$createfns) dbSendUpdate(design$conn, f)
    }
-   if (!is.na(nmissing) && nmissing>0){
-     if (na.rm==FALSE) stop("missing values present and na.rm=FALSE")
-     notna<-parse(text=paste(paste("!is.na(",all.vars(expr),")"),collapse="&"))[[1]]
-     design<-do.call(subset, list(design, notna))
-     tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
-                         list(tbl=design$table, subset=design$subset$table, key=design$key))
-     wtname<-design$subset$weights
-   }
-   design
- }
+  
+  for(v in allv){
+    nmissing<-dbGetQuery(design$conn, sqlsubst("select sum(%%wt%%) from %%table%% where %%var%% is null", 
+                                               list(wt=wtname, table=tablename, var=v)))[[1]][1]
+    if (!is.na(nmissing) && nmissing>0) break
+  }
+  
+  if (!is.na(nmissing) && nmissing>0){
+    if (na.rm==FALSE) stop("missing values present and na.rm=FALSE")
+    notna<-parse(text=paste(paste("!is.na(",all.vars(expr),")"),collapse="&"))[[1]]
+    design<-do.call(subset, list(design, notna))
+    tablename<-sqlsubst(" %%tbl%% inner join %%subset%% using(%%key%%) ",
+                        list(tbl=design$table, subset=design$subset$table, key=design$key))
+    wtname<-design$subset$weights
+  }
+  design
+}
 
 svylm<-function(formula,design,...) UseMethod("svylm",design)
 
@@ -964,20 +978,26 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   
   needsUpdates <- any(!sapply(all.vars(formula), isBaseVariable, design = design))
     if (needsUpdates) {
-        metavars <- with(design, c(id, strata, key))
+        metavars <- with(design, key)
         updates <- getTableWithUpdates(design, all.vars(formula), metavars, 
             tablename)
         tablename <- updates$table
+        alreadydefined<-dbGetQuery(design$conn,
+                                   paste("select count(*) from functions where name = '",updates$fnames[1],"'",sep="")
+                                   )[1,1]>0
+        if(!alreadydefined){
+          on.exit(for (d in updates$destroyfns) dbSendUpdate(design$conn,d), add=TRUE)
+          for(f in updates$createfns) dbSendUpdate(design$conn,f)
+        }
     } 
 
 
   mftable<-basename(tempfile("_mf_"))
   mmtable<-basename(tempfile("_mm_"))
 
-  ##FIXME needs to use getTableWithUpdates
   dbSendUpdate(design$conn, sqlsubst("create table %%mf%% as (select %%key%%, %%vars%% from %%table%%) with data",
                                list(mf=mftable, vars=all.vars(formula), table=tablename,
-                                    id=design$id, strata=design$strata,key=design$key)))
+                                    key=design$key)))
   dbSendUpdate(design$conn, sqlsubst("create unique index %%idx%% on %%tbl%%(%%key%%)",
                                    list(idx=basename(tempfile("idx")), tbl=mftable,
                                         key=design$key)))

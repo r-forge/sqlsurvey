@@ -1,6 +1,6 @@
 
 sqltype<-function(varname,design){
-  if (varname %in% names(design$zdata)){
+  if (varname %in% names(design$zdata)){  
     rtype<-class(design$zdata[[varname]])
     switch(rtype,integer="int",numeric="double",factor=paste("varchar(",max(nchar(levels(design$zdata[[varname]])))+1,")"), character="varchar(255)")
   } else {
