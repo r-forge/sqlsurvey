@@ -4,7 +4,7 @@
 
 0.6-3 fix to ordering in svymean.sqlrepsurvey (Antony Damico)
 
-      svyquantile was returning confidence intervals for the median regardles of 
+      svyquantile was returning confidence intervals for the median regardless of 
       what quantile was requested (Antony Damico)
 
       svyquantile didn't handle the maximum or minimum. The standard errors are

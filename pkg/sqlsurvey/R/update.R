@@ -49,18 +49,39 @@ update.sqlrepsurvey<-function(object, ..., MAX.LEVELS=100){
 }
 
 
+getOriginalInputs<-function(input, design){
+  if(sqlsurvey:::isCreatedVariable(input,design)){
+    for(i in seq_along(design$updates)){
+      if (input %in% names(design$updates[[i]])){
+      	return(do.call(c,lapply(design$updates[[i]][[input]]$inputs, getOriginalInputs,design=design)))
+        }
+    }
+  } else input
+
+}
+
 makeUpdateVar<-function(design, varname, expr,max.levels){
    fname<-basename(tempfile(varname))
    inputs<-all.vars(expr)
 
-   if(any(sapply(inputs, isCreatedVariable,design=design))) stop("can't (yet) use created variables as inputs")
+   if(usesCreated<-any(sapply(inputs, isCreatedVariable,design=design))) {
+
+     stop("can't (yet) use created variables as inputs")
+     oldinputs<-inputs
+     inputs<-unique(do.call(c,lapply(inputs,getOriginalInputs,design=design)))
+     }
    
    inputtypes<-sapply(inputs, sqltype, design=design)
 
-   
    fnexpr<-sqlexpr(expr,design)
    fnbody<-paste("return",fnexpr,";")
 
+   if (usesCreated){
+     ## declare inputs
+     ## set input = inputfunction(original,inputs)
+     ## fnexpr
+   }
+   
    outtest<-dbSendQuery(design$conn, paste("select (",fnexpr,") as tmp from",design$table,"limit 1"))
    sqlouttype<-as.character(dbColumnInfo(outtest)[1,2])
    Routtype<-as.character(dbColumnInfo(outtest)[1,3])
