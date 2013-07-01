@@ -1,15 +1,17 @@
+0.6-6 improved missing value handling for replicate-weight designs. (Anthony Damico)
+
 0.6-5 svyquantile.sqlrepsurvey, svylm.sqlrepsurvey, svylm.sqlsurvey use update()
 
 0.6-4 svytotal.sqlsurvey, sqlmodelmatrix, svyplot now use update()
 
-0.6-3 fix to ordering in svymean.sqlrepsurvey (Antony Damico)
+0.6-3 fix to ordering in svymean.sqlrepsurvey (Anthony Damico)
 
       svyquantile was returning confidence intervals for the median regardless of 
-      what quantile was requested (Antony Damico)
+      what quantile was requested (Anthony Damico)
 
       svyquantile didn't handle the maximum or minimum. The standard errors are
       still not very accurate (since the max and min don't have Normal distributions),
-      but the code now runs (Antony Damico)
+      but the code now runs (Anthony Damico)
 
       add print method for sqlsurvey results
 

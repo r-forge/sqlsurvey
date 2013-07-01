@@ -96,7 +96,8 @@ sqlrepsurvey<-function(weights, repweights, scale,rscales,
 
 svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
 
-
+  design<-dropmissing(x,design,na.rm=na.rm)
+  
   ## handle subpopulations
   if (is.null(design$subset)){
     tablename<-design$table
@@ -177,6 +178,7 @@ svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
 }
 
 svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
+  design<-dropmissing(x,design,na.rm=na.rm)
 
   tms<-terms(x)
 
@@ -304,6 +306,8 @@ svrVar<-function (thetas, scale, rscales, na.action = getOption("na.action"),
 
 
 svylm.sqlrepsurvey<-function(formula, design,...){
+    design<-dropmissing(formula,design,na.rm=TRUE)
+
   tms<-terms(formula)
   yname<-as.character(attr(tms,"variables")[[2]])
   ## handle subpopulations
@@ -428,6 +432,7 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
 }
 
 svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
+  design<-dropmissing(x,design,na.rm=na.rm)
 
   if (is.null(design$subset)){
     tablename<-design$table
@@ -485,6 +490,7 @@ svyloglin.sqlrepsurvey<-function (formula, design, ...)
 {
     if (length(formula) != 2) 
         stop("needs a one-sided formula")
+  design<-dropmissing(formula,design,na.rm=TRUE)
 
     if (is.null(design$subset)) {
         tablename <- design$table
