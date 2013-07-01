@@ -1,3 +1,7 @@
+0.6-7 Fixed subset.sqlrepsurvey to allow subsets of subsets, bug revealed by previous fix.
+      
+      svylm.sqlrepsurvey now allows for some NA coefficients
+
 0.6-6 improved missing value handling for replicate-weight designs. (Anthony Damico)
 
 0.6-5 svyquantile.sqlrepsurvey, svylm.sqlrepsurvey, svylm.sqlsurvey use update()

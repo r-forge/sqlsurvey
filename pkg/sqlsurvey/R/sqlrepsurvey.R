@@ -26,9 +26,10 @@ subset.sqlrepsurvey<-function(x,subset,...){
   rval$table<-basename(tempfile("_sbs_"))
   rval$idx<-basename(tempfile("_idx_"))
 
-
   allv<-all.vars(subset)
+
   tablename<-x$table
+
   if (any(sapply(allv, isCreatedVariable, design=x))){
     updates<-getTableWithUpdates(x,allv,c(x$weights,x$key),tablename)
     tablename<-updates$table
@@ -42,9 +43,16 @@ subset.sqlrepsurvey<-function(x,subset,...){
   
   rval$weights<-x$weights
   rval$repweights<-x$repweights
-  query<-sqlsubst("create table %%tbl%% as (select %%key%% from %%base%% where %%subset%%) with data",
-                  list(tbl=rval$table, key=x$key,subset=rval$subset, base=tablename )
-                  )
+  if (is.null(x$subset)){
+    query<-sqlsubst("create table %%tbl%% as (select %%key%% from %%base%% where %%subset%%) with data",
+                    list(tbl=rval$table, key=x$key,subset=rval$subset, base=tablename )
+                    )
+  } else{
+    query<-sqlsubst("create table %%tbl%% as (select %%key%% from %%oldsubset%% inner join %%base%% using(%%key%%) where %%subset%%) with data",
+                    list(tbl=rval$table, key=x$key,subset=rval$subset, base=tablename, oldsubset=x$subset$table )
+                )
+    
+  }
   dbSendUpdate(x$conn, query)
   dbSendUpdate(x$conn,sqlsubst("create unique index %%idx%% on %%tbl%%(%%key%%)",
                              list(idx=rval$idx,tbl=rval$table, key=x$key)))
@@ -341,30 +349,35 @@ svylm.sqlrepsurvey<-function(formula, design,...){
         list(sumxy = sumxy, y = yname, key = design$key, tablename = tablename, 
         mf=mm$mf, wt=wtname, mfy=mfy))
    xwy<-drop(as.matrix(dbGetQuery(design$conn, qxwy)))
-   beta<-solve(xwx,xwy)
+   beta<-qr.coef(qr(xwx),xwy)
 
   ##se
-  replicates<-matrix(NA,nrow=length(design$repweights),ncol=p)
-  for(i in seq_along(repweights)){
-    qxwx<-sqlsubst("select %%sumsq%% from %%table%%" ,
-                   list(sumsq=sumsq, table=tablename, wt=repweights[i])
-                   )
-    xwx<-matrix(as.matrix(dbGetQuery(design$conn, qxwx)),p,p)
-    qxwy <- sqlsubst("select %%sumxy%% from %%tablename%%  inner join (select %%y%% as %%mfy%%, %%key%% from %%mf%%) as _alias_ using(%%key%%)", 
+    replicates<-matrix(NA,nrow=length(design$repweights),ncol=p)
+    for(i in seq_along(repweights)){
+      qxwx<-sqlsubst("select %%sumsq%% from %%table%%" ,
+                     list(sumsq=sumsq, table=tablename, wt=repweights[i])
+                     )
+      xwx<-matrix(as.matrix(dbGetQuery(design$conn, qxwx)),p,p)
+      qxwy <- sqlsubst("select %%sumxy%% from %%tablename%%  inner join (select %%y%% as %%mfy%%, %%key%% from %%mf%%) as _alias_ using(%%key%%)", 
                        list(sumxy = sumxy, y = yname, key = design$key, tablename = tablename, 
                             mf=mm$mf, wt=repweights[i], mfy=mfy))
-    xwy<-drop(as.matrix(dbGetQuery(design$conn, qxwy)))
-    replicates[i,]<-solve(xwx,xwy)
-  }
-  v<-svrVar(replicates,design$scale,design$rscales,na.action=getOption("na.action"), mse=design$mse, beta)
+      xwy<-drop(as.matrix(dbGetQuery(design$conn, qxwy)))
+      replicates[i,]<-qr.coef(qr(xwx),xwy)
+    }
+    singular<-is.na(beta)
+    beta<-beta[!singular]
+    if(all(singular)) stop("coefficient estimates all NA")
+    if(any(singular)) warning("some coefficients not estimable; discarded")
+    replicates<-replicates[,!singular]
+    v<-svrVar(replicates,design$scale,design$rscales,na.action=getOption("na.action"), mse=design$mse, beta)
     
-  names(beta)<-termnames
-  dimnames(v)<-list(termnames, termnames)
-  class(beta)<-"svrepstat"
-  attr(beta, "var")<-v
-  attr(beta,"statistic")<-"coef"
-  beta
-}
+    names(beta)<-termnames[!singular]
+    dimnames(v)<-list(termnames[!singular], termnames[!singular])
+    class(beta)<-"svrepstat"
+    attr(beta, "var")<-v
+    attr(beta,"statistic")<-"coef"
+    beta
+  }
 
 
 close.sqlrepsurvey<-function(con, ...){
