@@ -23,8 +23,8 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
   \item{strata}{vector of strings with names of stratum identifiers }
   \item{weights}{string with name of weighting variable, or "1" for
     unweighted analysis }
-  \item{fpc}{string with name of population size variable (variable may
-    be zero for sampling with replacement or infinite population size)}
+  \item{fpc}{vector of strings with name of population size variable (variable may
+    be zero or literal '0' for sampling with replacement or infinite population size)}
   \item{driver}{database driver object (from \code{MonetDB})}
   \item{database}{name (URL) of the database containing the data table}
   \item{table.name}{Name for the data table containing the survey data

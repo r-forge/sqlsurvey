@@ -348,12 +348,12 @@ subset.sqlsurvey<-function(x,subset,...){
   } 
   
   if (is.null(x$subset)){
-    query<-sqlsubst("create table %%tbl%% as (select %%key%%, %%wt%%*(1*%%subset%%) as _subset_weight_ from %%base%%) with data",
+    query<-sqlsubst("create table %%tbl%% as (select %%key%%, %%wt%%*1.0*(1*%%subset%%) as _subset_weight_ from %%base%%) with data",
                     list(tbl=rval$table, key=x$key, wt=x$weights, subset=rval$subset, base=tablename )
                     )
     
   } else {
-       query<-sqlsubst("create table %%tbl%% as (select %%key%%, (%%subsetwt%%*(1*%%subset%%)) as _subset_weight_ from  %%base%% inner join %%oldtbl%% using(%%key%%) ) with data",
+       query<-sqlsubst("create table %%tbl%% as (select %%key%%, (%%subsetwt%%*1.0*(1*%%subset%%)) as _subset_weight_ from  %%base%% inner join %%oldtbl%% using(%%key%%) ) with data",
                     list(tbl=rval$table, key=x$key, subset=rval$subset, base=tablename,oldtbl=x$subset$table,subsetwt=x$subset$weights)
                     )
   }
@@ -666,7 +666,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
 }
 
 
-svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,...){
+svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,na.rm=TRUE,...){
   SMALL<-10000 ## 20 for testing. More like 1000 for production use
   if (is.null(design$subset))
     tablename<-design$table
@@ -737,6 +737,10 @@ svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,...){
   rval
 }
 
+metavars<-function(design,...) UseMethod("metavars")
+metavars.sqlsurvey<-function(design, ...) with(design, c(id, strata,  fpc, key))
+metavars.sqlrepsurvey<-function(design,...) with(design, c( repweights, key))
+
 dropmissing<-function(expr,design,na.rm){
   if (is.null(design$subset)){
     tablename<-design$table
@@ -752,7 +756,7 @@ dropmissing<-function(expr,design,na.rm){
   allv <- all.vars(expr)
   needsUpdates <- any(!sapply(allv, isBaseVariable, design = design))
   if (needsUpdates) {
-    metavars <- with(design, c(id, strata, wtname, fpc, key))
+    metavars <- c(wtname,metavars(design))
     updates <- getTableWithUpdates(design, allv, metavars, 
                                    tablename)
     tablename <- updates$table
@@ -878,19 +882,20 @@ sqlvar<-function(U, utable, design){
      units<-unique(c(units, design$strata[stage], design$id[stage]))
 
      if(length(strata)>0){
-       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, %%fpc%% as _fpc_, %%strata%%
+         
+       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, _fpc_, %%strata%%
                       from 
-                            (select %%strata%%, %%sumUs%%, %%fpc%% from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp
-                      group by %%strata%%" ,
+                            (select %%strata%%, %%sumUs%%, %%fpc%% as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%,_fpc_)  as r_temp
+                      group by %%strata%%, _fpc_" ,
                        list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
                             avgsq=avgsq,fpc=design$fpc[stage], strata=strata,
                             basetable=tablename, key=design$key
                             )
                        )
      } else {
-       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, %%fpc%% as _fpc_
+       query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_,  _fpc_
                       from 
-                            (select  %%sumUs%%, %%fpc%% from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp" ,
+                            (select  %%sumUs%%, %%fpc%% as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%,_fpc_)  as r_temp" ,
                        list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
                             avgsq=avgsq,fpc=design$fpc[stage],
                             basetable=tablename, key=design$key

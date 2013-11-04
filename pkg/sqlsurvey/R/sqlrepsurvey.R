@@ -1,4 +1,4 @@
-
+ 
 print.sqlrepsurvey<-function(x,...){
   cat("MonetDB survey object with replicate weights:\n")
   print(x$call)
@@ -161,10 +161,10 @@ svytotal.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
       dbGetQuery(design$conn,query)
     } else {
       if(is.null(byvar)) {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v)),collapse=","),
+        query<-paste("select ",paste(c(paste("sum((1*(",v,"))*",c(wtname,repweights),")"),adquote(v)),collapse=","),
                      "from",tablename)
       } else {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),
+        query<-paste("select ",paste(c(paste("sum((1*(",v,"))*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),
                      "from",tablename,
                      "group by",paste(byvar,collapse=","),
                      "order by", paste(byvar,collapse=","))
@@ -248,9 +248,9 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
       total<-dbGetQuery(design$conn,query)
     } else {
       if(is.null(byvar)) {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v)),collapse=","),"from",tablename)
+        query<-paste("select ",paste(c(paste("sum((1*(",v,"))*",c(wtname,repweights),")"),adquote(v)),collapse=","),"from",tablename)
       } else {
-        query<-paste("select ",paste(c(paste("sum(",v,"*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),"from",tablename,"group by",paste(byvar,collapse=","),"order by", paste(byvar,collapse=","))
+        query<-paste("select ",paste(c(paste("sum((1*(",v,"))*",c(wtname,repweights),")"),adquote(v),byvar),collapse=","),"from",tablename,"group by",paste(byvar,collapse=","),"order by", paste(byvar,collapse=","))
       }
       total<-dbGetQuery(design$conn,query)
     }
@@ -444,7 +444,7 @@ findQuantile<-function(xname,wtname,repweights, tablename, design, quantile,...)
    
 }
 
-svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,...){
+svyquantile.sqlrepsurvey<-function(x,design, quantiles,se=FALSE,na.rm=TRUE,...){
   design<-dropmissing(x,design,na.rm=na.rm)
 
   if (is.null(design$subset)){
