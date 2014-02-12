@@ -367,7 +367,7 @@ subset.sqlsurvey<-function(x,subset,...){
   x
 }
 
-sqlsurvey<-function(id, strata=NULL, weights=NULL, fpc="0",driver,
+sqlsurvey<-function(id=NULL, strata=NULL, weights=NULL, fpc="0",driver,
                        database, table.name=basename(tempfile("_tbl_")),
                        key, check.factors=10,...){
 
@@ -383,7 +383,13 @@ sqlsurvey<-function(id, strata=NULL, weights=NULL, fpc="0",driver,
   } else{
     zdata<-make.zdata(db,table.name,factors=check.factors)
   }
-  
+
+  if (is.null(id) || id=="1") {
+      if (is.null(id)) warning("No 'id' given, individual sampling assumed")
+      id<-key
+  }
+      
+      
   rval<-list(conn=db, table=table.name,
            id=id, strata=strata,weights=weights,fpc=fpc,
            call=sys.call(), zdata=zdata, key=key
@@ -885,7 +891,7 @@ sqlvar<-function(U, utable, design){
          
        query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_, _fpc_, %%strata%%
                       from 
-                            (select %%strata%%, %%sumUs%%, %%fpc%% as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%,_fpc_)  as r_temp
+                            (select %%strata%%, %%sumUs%%, avg(%%fpc%%) as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp
                       group by %%strata%%, _fpc_" ,
                        list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
                             avgsq=avgsq,fpc=design$fpc[stage], strata=strata,
@@ -895,7 +901,7 @@ sqlvar<-function(U, utable, design){
      } else {
        query<-sqlsubst("select %%avgs%%, %%avgsq%%, count(*) as _n_,  _fpc_
                       from 
-                            (select  %%sumUs%%, %%fpc%% as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%,_fpc_)  as r_temp" ,
+                            (select  %%sumUs%%, avg(%%fpc%%) as _fpc_ from %%basetable%% inner join %%tbl%% using(%%key%%) group by %%units%%)  as r_temp group by _fpc_" ,
                        list(units=units, strata=strata, sumUs=sumUs, tbl=utable,avgs=avgs,
                             avgsq=avgsq,fpc=design$fpc[stage],
                             basetable=tablename, key=design$key

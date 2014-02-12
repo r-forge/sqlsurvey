@@ -19,8 +19,10 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{id}{vector of strings with names of sampling unit identifiers}
-  \item{strata}{vector of strings with names of stratum identifiers }
+  \item{id}{vector of strings with names of sampling unit
+    identifiers. Use \code{"1"} or \code{NULL} for individual sampling}
+  \item{strata}{vector of strings with names of stratum identifiers. Use
+  \code{NULL} for unstratified sampling}
   \item{weights}{string with name of weighting variable, or "1" for
     unweighted analysis }
   \item{fpc}{vector of strings with name of population size variable (variable may
@@ -91,9 +93,10 @@ set up a {.monetdb} file in the home directory.
 \dontrun{
 ## assumes data already in database
 library(sqlsurvey)
-monetdriver<-MonetDB(classPath="/usr/local/monetdb/share/monetdb/lib/monetdb-jdbc-2.4.jar")
-sqhanes<-sqlsurvey(id="sdmvpsu",strata="sdmvstra",weights="fouryearwt",key="seqn",table.name="nhanesbp",database="jdbc:monetdb://localhost/ACS",driver=monetdriver,user="monetdb",password="monetdb")
+library(MonetDB.R)
+monetdriver<-MonetDB.R()
 
+sqhanes<-sqlsurvey(id="sdmvpsu",strata="sdmvstra",weights="fouryearwt",key="seqn",database="monetdb://localhost/ACS",driver=MonetDB(),table.name="nhanes")
 sqhanes
 
 ## blood pressure by gender
