@@ -38,6 +38,7 @@ S3method(svysmooth,sqlrepsurvey)
 S3method(svyplot,sqlrepsurvey)
 S3method(svytable,sqlrepsurvey)
 S3method(update,sqlrepsurvey)
+S3method(degf, sqlrepsurvey)
 
 S3method(open, sqlmodelmatrix)
 

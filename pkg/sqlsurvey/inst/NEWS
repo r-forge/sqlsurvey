@@ -1,3 +1,12 @@
+0.6-8 degf.sqlsurvey now exported
+
+      sqlrepsurvey allows degf= to be specified, defaults to number of reps - 1.
+
+      byvars can have spaces in their levels for svymean,svytotal
+
+      labels now printed even when there are no SEs
+
+
 0.6-7 Fixed subset.sqlrepsurvey to allow subsets of subsets, bug revealed by previous fix.
       
       svylm.sqlrepsurvey now allows for some NA coefficients

@@ -522,7 +522,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
       bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" AND "))
       vnames<-paste("(",termnames,"-",means,")",sep="")
       uexpr<-paste(vnames,"*(1*(",rep(bynames,each=p),"))")
-      unames<-paste("_",as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep="")
+      unames<-paste0("_",make.db.names(design$conn, paste(as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep=""),unique=TRUE))
       query<-sqlsubst("create table %%utbl%% as (select %%key%%, %%vars%% from %%table%%) with data",
                       list(utbl=utable, key=design$key,
                            vars=paste(uexpr,"as",unames),
@@ -553,10 +553,11 @@ vcov.sqlsvystat<-function(object,...) attr(object,"var")
 
 print.sqlsvystat<-function(x,...){
   se<-SE(x)
-  if (length(se))
+  if (length(se)){
     mat<-cbind(coef(x),SE=SE(x))
-  else
-    mat<-data.frame(coef(x))
+  } else{
+    mat<-as.data.frame(t(as.matrix(x[,attr(x,"resultcol"),drop=FALSE])))
+  }
   print(mat)
   invisible(x)
 }
@@ -647,7 +648,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
       qbycols<-lapply(bycols, function(v) if(is.character(v)) lapply(v,adquote) else v)
       bynames<-do.call(paste, c(mapply(paste, names(bycols),"=",qbycols,SIMPLIFY=FALSE), sep=" AND "))
       uexpr<-as.vector(outer(termnames, bynames, function(i,j) paste(i,"*(1*(",j,"))",sep="")))
-      unames<-paste("_",as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),sep="")
+      unames<-paste0("_",make.db.names(design$conn,as.vector(outer(termnames, do.call(paste, c(bycols,sep="_")), paste,sep="_")),unique=TRUE))
       query<-sqlsubst("create table %%utbl%% as (select %%key%%, %%vars%% from %%table%%)  with data",
                       list(utbl=utable, key=design$key,
                            vars=paste(uexpr,"as",unames),
@@ -1034,7 +1035,7 @@ sqlmodelmatrix<-function(formula, design, fullrank=TRUE){
   if (fullrank)
     contrastlevels<-function(f) {levels(f)[-1]}
   else
-    contrastlevels<-levels
+    contrastlevels<-function(f) levels(f)
 
   
   mmterms<-lapply(1:ntms,

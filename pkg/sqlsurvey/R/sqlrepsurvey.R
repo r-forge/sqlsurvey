@@ -65,7 +65,7 @@ subset.sqlrepsurvey<-function(x,subset,...){
 
 sqlrepsurvey<-function(weights, repweights, scale,rscales,
                        driver,database, table.name,
-                       key="row_names",mse=FALSE,check.factors=10,...){
+                       key="row_names",mse=FALSE,check.factors=10,degf=NULL,...){
 
   db<-dbConnect(driver,database,...)
 
@@ -85,10 +85,12 @@ sqlrepsurvey<-function(weights, repweights, scale,rscales,
     repweights<-grep(repweights,dbListFields(db,table.name),value=TRUE)
     print(repweights)
   }
+
+  if (is.null(degf)) degf<-length(repweights)-1
   
   rval<-list(conn=db, table=table.name, data=database,
            weights=weights,repweights=repweights,
-           call=sys.call(), zdata=zdata, key=key
+           call=sys.call(), zdata=zdata, key=key,degf=degf
            )
   
   rval$mse<-mse
@@ -566,7 +568,12 @@ svyloglin.sqlrepsurvey<-function (formula, design, ...)
     rval
 }
 withOptions<-survey:::withOptions
-degf.sqlrepsurvey<-function(design,...) length(design$repweights)
+degf.sqlrepsurvey<-function(design,...){
+    if (!is.null(design$degf))
+        design$degf
+    else 
+        length(design$repweights)
+}
 
 svychisq.sqlrepsurvey<-function(formula,design,pval = c("F", "saddlepoint", "lincom", "chisq"),...){
   ll0<-svyloglin(formula,design)

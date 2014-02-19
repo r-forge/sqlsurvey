@@ -12,7 +12,7 @@ database. The replicate-weights version (\code{\link{sqlrepsurvey}}) provides mo
 }
 \usage{
 sqlsurvey(id, strata = NULL, weights = NULL, fpc = "0", driver, database,
-table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
+table.name = basename(tempfile("_tbl_")), key ,check.factors=10,degf=NULL,...)
 \method{close}{sqlsurvey}(con, ...)
 \method{open}{sqlsurvey}(con, driver,...)
 \method{open}{sqlmodelmatrix}(con, design,...)
@@ -37,6 +37,8 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,...)
     disconnected from or reconnected to the database}
   \item{design}{A \code{sqlsurvey} object with an active database
     connection}
+  \item{degf}{Optional user-specified degrees of freedom for the
+    design. Defaults to one less than the number of replicates.}
   \item{...}{for \code{sqlsurvey} and \code{open.sqlsurvey}, other
     arguments to \code{dbConnect}, such as user,password, and database URL}
 }
@@ -76,6 +78,13 @@ be created once.  The most flexible and fastest approach is usually to create th
 data frame manually from the data documentation: only the columns for
 factor variables need to be supplied, as the code will assume other
 variables are numeric.
+
+The design degrees-of-freedom should be one less than the rank of the matrix of
+replicate weights, but for large surveys this is computationally
+expensive. The code defaults to one less than the number of replicates,
+which is correct for JK1, BRR, and the American Community Survey. For
+JKn weights, use the number of PSUs minus number of strata, if this can
+be determined from the documentation. 
 
   
 \code{close} closes the database connection, first attempting to
