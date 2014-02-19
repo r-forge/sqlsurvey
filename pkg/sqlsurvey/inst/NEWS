@@ -1,3 +1,6 @@
+0.6-9 check for crazy big byvar specifications in svymean.sqlsurvey, svytotal.sqlsurvey.
+      (may still need tuning)
+
 0.6-8 degf.sqlsurvey now exported
 
       sqlrepsurvey allows degf= to be specified, defaults to number of reps - 1.

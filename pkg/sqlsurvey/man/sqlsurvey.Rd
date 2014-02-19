@@ -11,8 +11,8 @@ Specifies a survey data set based on a connection to a SQL (currently MonetDB)
 database. The replicate-weights version (\code{\link{sqlrepsurvey}}) provides more functionality.
 }
 \usage{
-sqlsurvey(id, strata = NULL, weights = NULL, fpc = "0", driver, database,
-table.name = basename(tempfile("_tbl_")), key ,check.factors=10,degf=NULL,...)
+sqlsurvey(id=NULL, strata = NULL, weights = NULL, fpc = "0", driver=MonetDB.R(), database,
+table.name, key ,check.factors=10,...)
 \method{close}{sqlsurvey}(con, ...)
 \method{open}{sqlsurvey}(con, driver,...)
 \method{open}{sqlmodelmatrix}(con, design,...)
@@ -27,8 +27,9 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,degf=NULL,...)
     unweighted analysis }
   \item{fpc}{vector of strings with name of population size variable (variable may
     be zero or literal '0' for sampling with replacement or infinite population size)}
-  \item{driver}{database driver object (from \code{MonetDB})}
-  \item{database}{name (URL) of the database containing the data table}
+  \item{driver}{database driver object (from \code{MonetDB}), or
+    \code{NULL} if \code{database} is already a database connection}
+  \item{database}{Either a \connection{MonetDBConnection} or the name (URL) of the database containing the data table}
   \item{table.name}{Name for the data table containing the survey data
     and design variables}
   \item{key}{name of a variable that can be used as a unique key }
@@ -37,8 +38,6 @@ table.name = basename(tempfile("_tbl_")), key ,check.factors=10,degf=NULL,...)
     disconnected from or reconnected to the database}
   \item{design}{A \code{sqlsurvey} object with an active database
     connection}
-  \item{degf}{Optional user-specified degrees of freedom for the
-    design. Defaults to one less than the number of replicates.}
   \item{...}{for \code{sqlsurvey} and \code{open.sqlsurvey}, other
     arguments to \code{dbConnect}, such as user,password, and database URL}
 }

@@ -64,11 +64,14 @@ subset.sqlrepsurvey<-function(x,subset,...){
 }
 
 sqlrepsurvey<-function(weights, repweights, scale,rscales,
-                       driver,database, table.name,
+                       driver=MonetDB.R(),database, table.name,
                        key="row_names",mse=FALSE,check.factors=10,degf=NULL,...){
 
-  db<-dbConnect(driver,database,...)
-
+    if(is(database,"DBIConnection")){
+        db<-database
+    } else{
+        db<-dbConnect(driver,database,...)
+    }
   
   if (is.data.frame(check.factors)){
     zdata<-check.factors
@@ -204,7 +207,7 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
     repweights<-design$subset$repweights
   }
   M<-length(repweights)
-  
+
   updates<-NULL
   metavars<-NULL
   allv<-unique(c(all.vars(x),all.vars(byvar)))
@@ -267,13 +270,13 @@ svymean.sqlrepsurvey<-function(x, design, na.rm=TRUE, byvar=NULL, se=TRUE,...){
   mean<-means[,1]
   names(mean)<-do.call(c,lapply(results, function(r) apply(as.matrix(r[,-(1:(1+M)),drop=FALSE]),1,paste,collapse=":")))
   if (se) {
-  	attr(mean,"statistic")<-"mean"
-    attr(mean,"var")<-svrVar(t(means[,-1,drop=FALSE]),scale=design$scale,rscales=design$rscales,mse=design$mse, coef=mean)
-    class(mean)<-"svrepstat"
+      attr(mean,"statistic")<-"mean"
+      attr(mean,"var")<-svrVar(t(means[,-1,drop=FALSE]),scale=design$scale,rscales=design$rscales,mse=design$mse, coef=mean)
   }
+  class(mean)<-"svrepstat"
   mean
-  
-}
+}  
+
 
 
 

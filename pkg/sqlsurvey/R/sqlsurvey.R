@@ -1,4 +1,12 @@
 
+check.not.crazy.big<-function(conn,table, vars,byvars){
+   levs<-dbGetQuery(conn, sqlsubst("select count(*),%%b%% from %%table%% group by %%b%%",list(table=table, b=paste(byvars,collapse=","))))
+   big<-nchar(paste(apply(levs, 1, paste,collapse="_"),collapse="_"))^2
+   if (big*length(vars)>2e5)
+       stop("Query is too large: split it up")
+   else TRUE
+}
+
 
 make.zdata<-function(db, table, factors=9){
   rval<-dbGetQuery(db,sqlsubst("select * from %%tbl%% limit 1",
@@ -367,12 +375,14 @@ subset.sqlsurvey<-function(x,subset,...){
   x
 }
 
-sqlsurvey<-function(id=NULL, strata=NULL, weights=NULL, fpc="0",driver,
-                       database, table.name=basename(tempfile("_tbl_")),
+sqlsurvey<-function(id=NULL, strata=NULL, weights=NULL, fpc="0",driver=MonetDB.R(),
+                       database, table.name,
                        key, check.factors=10,...){
 
-
-  db<-dbConnect(driver,database,...)
+    if (is(database, "DBIConnection"))
+        db<-database
+    else
+        db<-dbConnect(driver,database,...)
 
   if (is.data.frame(check.factors)){
     zdata<-check.factors
@@ -473,7 +483,7 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
       tablename<-updates$table
     }
   }
-  
+
   
   ## use sqlmodelmatrix if we have factors or interactions
   basevars<-rownames(attr(tms,"factors"))
@@ -488,6 +498,8 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
   vars<-paste("sum(",wtname,"*",termnames,")")
   tvars<-paste("sum(",wtname,"*(1*(",termnames," is not null)))")
 
+
+
   if (is.null(byvar)){
     query<-sqlsubst("select %%vars%%  from %%table%%",
                     list(vars=vars,table=tablename))
@@ -495,6 +507,8 @@ svymean.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE, keep.estf
                     list(vars=tvars, table=tablename))
   }else{
     byvar<-attr(terms(byvar),"term.labels")
+    check.not.crazy.big(design$conn, tablename, all.vars(x) ,byvar)
+
     query<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
                     list(vars=vars, byvars=byvar, wt=wtname, table=tablename))    
     tquery<-sqlsubst("select %%vars%%, %%byvars%% from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
@@ -621,6 +635,7 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
     termnames<-attr(tms,"term.labels")
   }
 
+  
   vars<-paste("sum(",wtname,"*(1*",termnames,"))",sep="")
   
   if (is.null(byvar)){
@@ -628,6 +643,8 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
                     list(vars=vars, wt=wtname,table=tablename))
   }else{
     byvar<-attr(terms(byvar),"term.labels")
+    check.not.crazy.big(design$conn, tablename, all.vars(x) ,byvar)
+    
     query<-sqlsubst("select %%vars%%, %%byvars%%  from %%table%% where %%wt%%<>0 group by %%byvars%% order by %%byvars%%",
                     list(vars=vars, byvars=byvar, wt=wtname, table=tablename))    
   }

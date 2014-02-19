@@ -10,7 +10,7 @@ Large survey with replicate weights, based on SQL database
 Specifies a survey design with replicate weights based on a connection to a relational database (currently MonetDB). 
 }
 \usage{
-sqlrepsurvey(weights, repweights, scale, rscales, driver, database, table.name, key = "row_names", mse = FALSE, check.factors = 10, ...)
+sqlrepsurvey(weights, repweights, scale, rscales, driver=MonetDB.R(), database, table.name, key = "row_names", mse = FALSE, check.factors = 10, degf=NULL,...)
 \method{close}{sqlrepsurvey}(con, ...)
 \method{open}{sqlrepsurvey}(con, driver,...)
 }
@@ -31,10 +31,10 @@ A vector of the same length as \code{repweights} giving per-replicate
 scaling for squared deviations of the replicates
 }
   \item{driver}{
-A database driver object (eg returned by \code{MonetDB()})
+A database driver object (eg returned by \code{MonetDB()}) or \code{NULL} if the \code{database} argument is already a database connection.
 }
   \item{database}{
-A character string with the name (URL) of a database containing the data table
+Either a connection to a MonetDB database or a character string with the name (URL) of a database containing the data table
 }
   \item{table.name}{
 A character string with the name of data table containing the data and replicate weights
@@ -53,6 +53,10 @@ the replicates.
     the survey design object.  This can be slow for a very large
     survey.  \code{check.factors} can also be a zero-row data frame
     with the correct factor levels for the factor variables.}
+
+  \item{degf}{Optional user-specified degrees of freedom for the
+    design. Defaults to one less than the number of replicates.}
+
   \item{\dots}{
 Other arguments to \code{dbConnect}, such as user and password
 }
