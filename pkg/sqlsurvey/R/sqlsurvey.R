@@ -1242,16 +1242,6 @@ sqlscatter<-function(formula,design,npoints=1000,nplots=4,...){
   
 
 
-dim.sqlsurvey<-function(x){
-  if(is.null(x$subset))
-    nrows<-dbGetQuery(x$conn, sqlsubst("select count(*) from %%table%%", list(table=x$table)))[[1]]
-  else
-    nrows<-dbGetQuery(x$conn, sqlsubst("select count(*) from %%subtable%%",
-                                       list(subtable=x$subset$table)))[[1]]
-  ncols<-length(allVarNames(x))
-  c(nrows,ncols)
-}
-
 dimnames.sqlsurvey<-function(x,...) list(character(0),allVarNames(x))
 
 
