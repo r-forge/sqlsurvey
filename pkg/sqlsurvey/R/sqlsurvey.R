@@ -383,6 +383,8 @@ sqlsurvey<-function(id=NULL, strata=NULL, weights=NULL, fpc="0",driver=MonetDB.R
         db<-database
     else
         db<-dbConnect(driver,database,...)
+        
+    if (missing(table.name)) stop("table.name required")
 
   if (is.data.frame(check.factors)){
     zdata<-check.factors
@@ -692,24 +694,27 @@ svytotal.sqlsurvey<-function(x, design, na.rm=TRUE,byvar=NULL,se=FALSE,keep.estf
 
 svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,na.rm=TRUE,...){
   SMALL<-10000 ## 20 for testing. More like 1000 for production use
-  if (is.null(design$subset))
+  if (is.null(design$subset)){
     tablename<-design$table
-  else
-    tablename<-sqlsubst("%%tbl%% inner join %%sub%% using(%%key%%)",
+    weights<-design$weights
+  }else{
+    tablename<-sqlsubst("%%tbl%% inner join  ( select * from %%sub%% where %%wt%%>0) as foo using(%%key%%)",
                         list(tbl=design$table, sub=design$subset$table,
-                             key=design$key))
+                             key=design$key,wt=design$subset$weights))
+    weights<-design$subset$weights                         
+    }
   bisect<-function(varname,wtname,  low, up, plow,pup, nlow,nup,quant,W){
     if (up==low) return(up)
     if (nup-nlow < SMALL){
       query<-sqlsubst("select %%var%%, %%wt%% from %%table%% where %%var%%>%%low%% and %%var%%<=%%up%%",
-                      list(var=varname,wt=wtname,table=design$table,
+                      list(var=varname,wt=wtname,table= tablename,
                            low=low,up=up))
       data<-dbGetQuery(design$conn, query)
       return(bisect.in.mem(data, plow, pup,quant,W))
     }
     mid<-((pup-quant+0.5)*low+(quant-plow+0.5)*up)/(pup-plow+1)
     query<-sqlsubst("select sum(%%wt%%), count(*), max(%%var%%) from %%table%% where %%var%%<=%%mid%%",
-                    list(var=varname,mid=mid,wt=wtname,table=design$table))
+                    list(var=varname,mid=mid,wt=wtname,table= tablename))
     result<-dbGetQuery(design$conn, query)
     mid<-result[[3]]
     nmid<-result[[2]]
@@ -717,7 +722,7 @@ svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,na.rm=TRUE
     if (mid==up && pmid>quant) return(mid)
     if (mid==low){
       query<-sqlsubst("select sum(%%wt%%)from %%table%% where %%var%% = %%mid%% ",
-                      list(var=varname, mid=mid,table=design$table, wt=wtname))
+                      list(var=varname, mid=mid,table= tablename, wt=wtname))
       pexactmid<-dbGetQuery(design$conn,query)
       if (pmid+pexactmid>quant) return(up)
     }
@@ -742,16 +747,10 @@ svyquantile.sqlsurvey<-function(x,design, quantiles,build.index=FALSE,na.rm=TRUE
       cdf<-cumsum(tbl[,2])/sum(tbl[,2])
       return(tbl[,1][min(which(cdf>=quant))])
     }
-    if(build.index){
-      idxname<-basename(tempfile("idx"))
-      dbSendUpdate(design$conn, sqlsubst("create index %%idx%% on %%tbl%%(%%var%%)",
-                                       list(idx=idxname, tbl=design$table,var=varname)))
-      on.exit(dbSendUpdate(design$conn, sqlsubst("drop index %%idx%%",list(idx=idxname))))
-    }
-    lims<-dbGetQuery(design$conn,
+        lims<-dbGetQuery(design$conn,
                      sqlsubst("select min(%%var%%), max(%%var%%), count(*), sum(%%wt%%) from %%table%%",
-                              list(var=varname, wt=design$weights, table=design$table)))
-    bisect(varname,design$weights, lims[[1]],lims[[2]],0,1,0,lims[[3]],quant,lims[[4]])
+                              list(var=varname, wt=weights, table= tablename)))
+    bisect(varname,weights, lims[[1]],lims[[2]],0,1,0,lims[[3]],quant,lims[[4]])
   }
 
   if(length(quantiles)>1) stop("only one quantile")
